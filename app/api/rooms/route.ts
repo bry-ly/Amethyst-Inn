@@ -11,12 +11,17 @@ export async function GET(request: NextRequest) {
   const target = `${backend.replace(/\/$/, '')}/api/rooms${queryString ? `?${queryString}` : ''}`
 
   try {
-    console.log('Proxying GET request to:', target)
-    const res = await fetch(target)
+    const res = await fetch(target, {
+      cache: 'no-store',
+      headers: {
+        ...(request.headers.get('authorization') && {
+          'Authorization': request.headers.get('authorization')!,
+        }),
+      },
+    })
     const data = await res.json()
     return NextResponse.json(data, { status: res.status })
   } catch (err) {
-    console.error('Backend fetch error:', err)
     return NextResponse.json(
       { 
         success: false,
@@ -32,29 +37,37 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Validate required fields
-    const requiredFields = ['number', 'type', 'pricePerNight', 'capacity']
-    const missingFields = requiredFields.filter(field => !body[field])
-    
-    if (missingFields.length > 0) {
+    // Validate required fields (accept either capacity or guestCapacity)
+    const baseRequired = ['number', 'type', 'pricePerNight']
+    const missingBase = baseRequired.filter(field => !body[field])
+
+    const hasCapacity = !!body.capacity
+    const hasGuestCapacity = typeof body.guestCapacity === 'number'
+
+    if (missingBase.length > 0 || (!hasCapacity && !hasGuestCapacity)) {
+      const missing = [...missingBase]
+      if (!hasCapacity && !hasGuestCapacity) missing.push('capacity or guestCapacity')
       return NextResponse.json(
-        { 
-          success: false,
-          error: `Missing required fields: ${missingFields.join(', ')}` 
-        },
+        { success: false, error: `Missing required fields: ${missing.join(', ')}` },
         { status: 400 }
       )
     }
 
-    // Validate capacity structure
-    if (!body.capacity.adults || body.capacity.adults < 1) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Adult capacity must be at least 1' 
-        },
-        { status: 400 }
-      )
+    // Validate capacity/guestCapacity structure
+    if (hasGuestCapacity) {
+      if (body.guestCapacity < 1) {
+        return NextResponse.json(
+          { success: false, error: 'Guest capacity must be at least 1' },
+          { status: 400 }
+        )
+      }
+    } else {
+      if (!body.capacity.adults || body.capacity.adults < 1) {
+        return NextResponse.json(
+          { success: false, error: 'Adult capacity must be at least 1' },
+          { status: 400 }
+        )
+      }
     }
 
     const target = `${backend.replace(/\/$/, '')}/api/rooms`

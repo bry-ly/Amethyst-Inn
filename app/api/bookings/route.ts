@@ -31,12 +31,20 @@ export async function POST(request: Request) {
   const target = `${backend}/api/bookings`
 
   try {
-    const body = await request.text()
+    // Get the FormData from the request
+    const formData = await request.formData()
     const auth = request.headers.get('authorization') || undefined
-    const headers: Record<string, string> = { 'content-type': 'application/json' }
+    
+    const headers: Record<string, string> = {}
     if (auth) headers['authorization'] = auth
+    // Note: Don't set Content-Type for FormData, browser will set it with boundary
 
-    const res = await fetch(target, { method: 'POST', headers, body })
+    const res = await fetch(target, { 
+      method: 'POST', 
+      headers, 
+      body: formData  // Send FormData directly
+    })
+    
     const text = await res.text()
     try {
       const data = JSON.parse(text)

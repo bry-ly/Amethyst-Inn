@@ -54,7 +54,7 @@ export function prefetchOnMount(componentName: string) {
     case 'RoomsList':
       prefetchData('/api/rooms');
       break;
-    case 'UserDataTable':
+    case 'UsersPageWrapper':
       prefetchData('/api/users');
       break;
     case 'BookingDataTable':

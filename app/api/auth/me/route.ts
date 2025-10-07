@@ -1,8 +1,12 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
-  const token = (await cookies()).get('auth_token')?.value
+export async function GET(request: Request) {
+  // Try to get token from Authorization header first, then from cookies
+  const authHeader = request.headers.get('authorization')
+  const cookieToken = (await cookies()).get('auth_token')?.value
+  const token = authHeader?.replace('Bearer ', '') || cookieToken
+  
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
 
   const backend = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')

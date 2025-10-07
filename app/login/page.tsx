@@ -1,4 +1,9 @@
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from "@/components/auth/login-form"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Amethyst Inn - Login",
+}
 
 export default function Page() {
   return (
@@ -9,6 +14,13 @@ export default function Page() {
     </div>
   )
 }
+
+
+
+
+
+
+
 
 
 

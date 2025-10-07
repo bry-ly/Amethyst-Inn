@@ -61,6 +61,12 @@ const roomSchema = new mongoose.Schema(
         message: "Each amenity must be between 1 and 50 characters"
       }
     }],
+    // New unified guest capacity (preferred over capacity.adults/children)
+    guestCapacity: {
+      type: Number,
+      min: [1, "Room must accommodate at least 1 guest"],
+      max: [15, "Room cannot accommodate more than 15 guests"]
+    },
     capacity: {
       adults: {
         type: Number,
@@ -120,9 +126,14 @@ roomSchema.index({ pricePerNight: 1 });
 roomSchema.index({ status: 1 });
 roomSchema.index({ isActive: 1 });
 
-// Virtual for total capacity
+// Virtual for total capacity (prefers guestCapacity if present)
 roomSchema.virtual('totalCapacity').get(function() {
-  return this.capacity.adults + this.capacity.children;
+  if (typeof this.guestCapacity === 'number' && !isNaN(this.guestCapacity)) {
+    return this.guestCapacity;
+  }
+  const a = this.capacity?.adults || 0;
+  const c = this.capacity?.children || 0;
+  return a + c;
 });
 
 // Virtual for room availability
@@ -137,9 +148,18 @@ roomSchema.pre('save', function(next) {
     this.number = this.number.toUpperCase();
   }
   
-  // Validate that children capacity doesn't exceed adults
-  if (this.capacity.children > this.capacity.adults) {
-    next(new Error('Children capacity cannot exceed adult capacity'));
+  // Back-compat validation when capacity object is used
+  if (this.capacity && typeof this.capacity.children === 'number' && typeof this.capacity.adults === 'number') {
+    if (this.capacity.children > this.capacity.adults) {
+      return next(new Error('Children capacity cannot exceed adult capacity'));
+    }
+  }
+
+  // Derive guestCapacity if not provided but capacity exists
+  if ((this.guestCapacity === undefined || this.guestCapacity === null) && this.capacity) {
+    const a = this.capacity.adults || 0;
+    const c = this.capacity.children || 0;
+    this.guestCapacity = a + c;
   }
   
   next();

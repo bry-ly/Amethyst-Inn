@@ -1,39 +1,62 @@
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
+"use client";
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { DashboardWrapper } from "@/components/dashboard-wrapper"
+import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper"
+import { AuthTokenManager } from "@/utils/cookies"
+import { PageLoader } from "@/components/common/loading-spinner"
+import { toast } from "sonner"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-export const fetchCache = "force-no-store"
+export default function DashboardPage() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
-async function requireAdmin() {
-  const token = (await cookies()).get("auth_token")?.value
-  if (!token) {
-    redirect("/login?next=/dashboard")
-  }
-  const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
-  try {
-    const res = await fetch(`${backend}/api/auth/me`, {
-      headers: { authorization: `Bearer ${token}` },
-      cache: "no-store",
-    })
-    if (!res.ok) {
-      redirect("/login?next=/dashboard")
+  useEffect(() => {
+    document.title = "Amethyst Inn - Dashboard";
+    checkAuth()
+  }, [])
+
+  async function checkAuth() {
+    try {
+      const token = AuthTokenManager.getToken()
+      
+      if (!token) {
+        router.push("/login?next=/dashboard")
+        return
+      }
+
+      const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
+      const res = await fetch(`${backend}/api/auth/me`, {
+        headers: { authorization: `Bearer ${token}` },
+        cache: "no-store",
+      })
+
+      if (!res.ok) {
+        router.push("/login?next=/dashboard")
+        return
+      }
+
+      const data = await res.json()
+      
+      if (data?.role !== "admin") {
+        toast.error("Access denied. Admin privileges required.")
+        router.push("/")
+        return
+      }
+
+      setIsAuthorized(true)
+    } catch (error) {
+      console.error("Auth error:", error)
+      router.push("/login?next=/dashboard")
+    } finally {
+      setIsLoading(false)
     }
-    const data = await res.json()
-    if (data?.role !== "admin") {
-      redirect("/")
-    }
-  } catch {
-    redirect("/login?next=/dashboard")
   }
-}
 
-export default async function Page() {
-  await requireAdmin()
   return (
     <SidebarProvider
       style={{
@@ -46,7 +69,15 @@ export default async function Page() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <DashboardWrapper />
+            {isLoading ? (
+              <PageLoader message="Loading dashboard..." />
+            ) : !isAuthorized ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <p className="text-muted-foreground">Checking authorization...</p>
+              </div>
+            ) : (
+              <DashboardWrapper />
+            )}
           </div>
         </div>
       </SidebarInset>

@@ -1,4 +1,9 @@
-import { SignupForm } from "@/components/signup-form"
+import { SignupForm } from "@/components/auth/signup-form"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Amethyst Inn - Sign Up",
+}
 
 export default function Page() {
   return (

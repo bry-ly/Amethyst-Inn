@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 
 export interface Room {
   _id: string;
@@ -9,6 +10,7 @@ export interface Room {
   status: 'available' | 'occupied' | 'maintenance' | 'cleaning' | 'out_of_order';
   description?: string;
   amenities?: string[];
+  guestCapacity?: number;
   capacity?: {
     adults: number;
     children: number;
@@ -103,12 +105,15 @@ export function useRooms(options: UseRoomsOptions = {}): UseRoomsReturn {
         setRooms(data.data || data);
         setPagination(data.pagination || null);
       } else {
-        setError(data.error || data.message || 'Failed to fetch rooms');
+        const errorMessage = data.error || data.message || 'Failed to fetch rooms';
+        setError(errorMessage);
+        toast.error(errorMessage, { description: 'Unable to load rooms' });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
       console.error('Error fetching rooms:', err);
+      toast.error(errorMessage, { description: 'Unable to load rooms' });
     } finally {
       setLoading(false);
     }
@@ -157,12 +162,15 @@ export function useRoom(roomId: string | null) {
       if (response.ok && data.success !== false) {
         setRoom(data.data || data);
       } else {
-        setError(data.error || data.message || 'Failed to fetch room');
+        const errorMessage = data.error || data.message || 'Failed to fetch room';
+        setError(errorMessage);
+        toast.error(errorMessage, { description: 'Unable to load room' });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
       console.error('Error fetching room:', err);
+      toast.error(errorMessage, { description: 'Unable to load room' });
     } finally {
       setLoading(false);
     }

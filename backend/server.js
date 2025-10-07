@@ -146,6 +146,10 @@ app.use("/api", router);
 // rate limiters
 app.use("/api", apiLimiter);
 
+// Serve uploaded files (identification documents)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+logger.info('Static file serving enabled for /uploads directory');
+
 // 404 handler for undefined routes
 app.use(notFoundHandler);
 

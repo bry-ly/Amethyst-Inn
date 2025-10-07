@@ -11,41 +11,44 @@ export const createBooking = asyncHandler(async (req, res) => {
     roomId, 
     checkInDate, 
     checkOutDate, 
-    guests, 
+    guestCount, 
     totalPrice, 
     specialRequests 
   } = req.body;
 
   // Validate required fields
-  if (!roomId || !checkInDate || !checkOutDate || !guests || !totalPrice) {
+  if (!roomId || !checkInDate || !checkOutDate || !guestCount || !totalPrice) {
     res.status(400);
-    throw new Error("Missing required fields: roomId, checkInDate, checkOutDate, guests, totalPrice");
+    throw new Error("Missing required fields: roomId, checkInDate, checkOutDate, guestCount, totalPrice");
   }
 
-  // Validate guests structure
-  if (!guests.adults || guests.adults < 1) {
+  // Validate identification document upload
+  if (!req.file) {
     res.status(400);
-    throw new Error("At least 1 adult is required");
+    throw new Error("Identification document is required for booking verification");
   }
 
-  if (guests.adults > 10) {
+  // Validate guest count
+  const guests = parseInt(guestCount);
+  if (isNaN(guests) || guests < 1) {
     res.status(400);
-    throw new Error("Cannot exceed 10 adults");
+    throw new Error("At least 1 guest is required");
   }
 
-  if (guests.children && guests.children > 5) {
+  if (guests > 20) {
     res.status(400);
-    throw new Error("Cannot exceed 5 children");
+    throw new Error("Cannot exceed 20 guests");
   }
 
   // Validate dates
   const checkIn = new Date(checkInDate);
   const checkOut = new Date(checkOutDate);
-  const now = new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  if (checkIn <= now) {
+  if (checkIn < today) {
     res.status(400);
-    throw new Error("Check-in date must be in the future");
+    throw new Error("Check-in date cannot be in the past");
   }
 
   if (checkOut <= checkIn) {
@@ -66,10 +69,10 @@ export const createBooking = asyncHandler(async (req, res) => {
   }
 
   // Check room capacity
-  const totalGuests = guests.adults + (guests.children || 0);
-  if (totalGuests > (room.capacity.adults + room.capacity.children)) {
+  const roomCapacity = room.guestCapacity || (room.capacity?.adults + room.capacity?.children) || 2;
+  if (guests > roomCapacity) {
     res.status(400);
-    throw new Error(`Room capacity exceeded. Maximum ${room.capacity.adults + room.capacity.children} guests allowed`);
+    throw new Error(`Room capacity exceeded. Maximum ${roomCapacity} guests allowed`);
   }
 
   // Check for overlapping bookings using the schema method
@@ -86,12 +89,10 @@ export const createBooking = asyncHandler(async (req, res) => {
     room: roomId,
     checkInDate: checkIn,
     checkOutDate: checkOut,
-    guests: {
-      adults: guests.adults,
-      children: guests.children || 0
-    },
+    guestCount: guests,
     totalPrice,
     specialRequests: specialRequests || undefined,
+    identificationDocument: req.uploadedDocument._id, // Use document reference instead of file path
     status: "pending", // Start as pending, can be confirmed later
     isPaid: false,
     // Payment fields will be handled separately
@@ -100,7 +101,8 @@ export const createBooking = asyncHandler(async (req, res) => {
   // Populate the booking for response
   await booking.populate([
     { path: 'room', select: 'number type pricePerNight capacity amenities' },
-    { path: 'guest', select: 'name email phone' }
+    { path: 'guest', select: 'name email phone' },
+    { path: 'identificationDocument', select: 'filename originalName mimetype size url' }
   ]);
 
   res.status(201).json({
@@ -113,13 +115,28 @@ export const createBooking = asyncHandler(async (req, res) => {
 
 // @desc    Update booking
 // @route   PUT /api/bookings/:id
-// @access  Private/Admin/Staff
+// @access  Private/Admin/Staff (or guest for their own bookings when confirming)
 export const updateBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id).populate("room");
 
   if (!booking) {
     res.status(404);
     throw new Error("Booking not found");
+  }
+
+  // Check authorization - allow guests to confirm their own bookings
+  const isGuest = booking.guest.toString() === req.user._id.toString();
+  const isStaff = req.user.role === "admin" || req.user.role === "staff";
+
+  if (!isGuest && !isStaff) {
+    res.status(403);
+    throw new Error("Not authorized to update this booking");
+  }
+
+  // If guest is trying to confirm their own booking, only allow status change to "confirmed"
+  if (isGuest && req.body.status && req.body.status !== "confirmed") {
+    res.status(403);
+    throw new Error("Guests can only confirm their own bookings");
   }
 
   // Validate status transitions
@@ -213,8 +230,8 @@ export const updateBooking = asyncHandler(async (req, res) => {
 export const getBookings = asyncHandler(async (req, res) => {
   let query = {};
   
-  // If user is a guest, only show their bookings
-  if (req.user.role === "guest") {
+  // If user is not admin/staff, only show their bookings
+  if (req.user.role !== "admin" && req.user.role !== "staff") {
     query.guest = req.user._id;
   }
 
@@ -247,6 +264,7 @@ export const getBookings = asyncHandler(async (req, res) => {
   const bookings = await Booking.find(query)
     .populate("room", "number type pricePerNight capacity amenities status")
     .populate("guest", "name email phone")
+    .populate("identificationDocument", "filename originalName mimetype size url")
     .sort({ [sortBy]: sortOrder })
     .skip(skip)
     .limit(limit);
@@ -275,15 +293,15 @@ export const getBookingById = asyncHandler(async (req, res) => {
     .populate("cancelledBy", "name email")
     .populate("checkedInBy", "name email")
     .populate("checkedOutBy", "name email")
-    .populate("internalNotes.staff", "name email");
-
+    .populate("internalNotes.staff", "name email")
+    .populate("identificationDocument", "filename originalName mimetype size url path");
   if (!booking) {
     res.status(404);
     throw new Error("Booking not found");
   }
 
-  // Check if guest is trying to access their own booking
-  if (req.user.role === "guest" && booking.guest._id.toString() !== req.user._id.toString()) {
+  // Check if non-admin/staff user is trying to access their own booking
+  if (req.user.role !== "admin" && req.user.role !== "staff" && booking.guest._id.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Not authorized to view this booking");
   }
@@ -329,13 +347,19 @@ export const cancelBooking = asyncHandler(async (req, res) => {
     throw new Error("Cannot cancel a checked-out booking");
   }
 
-  // Check if booking can be cancelled based on check-in time
+  // Check if booking can be cancelled based on 24-hour policy
   const now = new Date();
   const hoursUntilCheckIn = (booking.checkInDate - now) / (1000 * 60 * 60);
   
   if (hoursUntilCheckIn < 0) {
     res.status(400);
     throw new Error("Cannot cancel a booking that has already started");
+  }
+
+  // Enforce 24-hour cancellation policy
+  if (hoursUntilCheckIn < 24) {
+    res.status(400);
+    throw new Error("Cancellation must be made at least 24 hours before check-in time");
   }
 
   // Update booking status and cancellation details
@@ -432,6 +456,37 @@ export const checkOutGuest = asyncHandler(async (req, res) => {
     success: true,
     message: "Guest checked out successfully",
     data: booking
+  });
+});
+
+// @desc    Delete booking
+// @route   DELETE /api/bookings/:id
+// @access  Private
+export const deleteBooking = asyncHandler(async (req, res) => {
+  const booking = await Booking.findById(req.params.id).populate("room");
+
+  if (!booking) {
+    res.status(404);
+    throw new Error("Booking not found");
+  }
+
+  // Check if non-admin/staff user is trying to delete their own booking
+  if (req.user.role !== "admin" && req.user.role !== "staff" && booking.guest.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Not authorized to delete this booking");
+  }
+
+  // If booking is active, update room status
+  if (booking.status === "confirmed" || booking.status === "checked_in") {
+    booking.room.status = "available";
+    await booking.room.save();
+  }
+
+  await booking.deleteOne();
+
+  res.json({ 
+    success: true,
+    message: "Booking deleted successfully" 
   });
 });
 

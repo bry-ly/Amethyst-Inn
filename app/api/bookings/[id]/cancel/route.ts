@@ -10,11 +10,16 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   const target = `${backend}/api/bookings/${id}/cancel`
 
   try {
+    const body = await request.text()
     const auth = request.headers.get('authorization') || undefined
     const headers: Record<string, string> = { 'content-type': 'application/json' }
     if (auth) headers['authorization'] = auth
 
-    const res = await fetch(target, { method: 'PUT', headers })
+    const res = await fetch(target, { 
+      method: 'PUT', 
+      headers,
+      body: body || JSON.stringify({})
+    })
     const text = await res.text()
     try {
       const data = JSON.parse(text)

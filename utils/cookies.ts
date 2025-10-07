@@ -169,8 +169,7 @@ export class AuthTokenManager {
         days: 7,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        path: '/',
-        httpOnly: true // Important for security
+        path: '/'
       });
     } else {
       // If consent is revoked or not given, ensure cookie is cleared

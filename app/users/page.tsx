@@ -1,9 +1,14 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { AppSidebar } from '@/components/app-sidebar'
-import { SiteHeader } from '@/components/site-header'
+import { AppSidebar } from '@/components/layout/app-sidebar'
+import { SiteHeader } from '@/components/layout/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import UserDataTable from '@/components/UserDataTable'
+import { UsersPageWrapper } from '@/components/tables/users-page-wrapper'
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Amethyst Inn - Users",
+}
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -39,7 +44,7 @@ export default async function UsersPage() {
           <div className="flex flex-1 flex-col h-full">
             <div className="@container/main flex flex-1 flex-col gap-2 h-full">
               <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 h-full">
-                <UserDataTable />
+                <UsersPageWrapper />
               </div>
             </div>
           </div>

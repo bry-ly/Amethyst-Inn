@@ -34,19 +34,11 @@ const bookingSchema = new mongoose.Schema(
         message: "Check-out date must be after check-in date"
       }
     },
-    guests: {
-      adults: {
-        type: Number,
-        required: [true, "Number of adults is required"],
-        min: [1, "At least 1 adult is required"],
-        max: [10, "Cannot exceed 10 adults"]
-      },
-      children: {
-        type: Number,
-        default: 0,
-        min: [0, "Children count cannot be negative"],
-        max: [5, "Cannot exceed 5 children"]
-      }
+    guestCount: {
+      type: Number,
+      required: [true, "Number of guests is required"],
+      min: [1, "At least 1 guest is required"],
+      max: [20, "Cannot exceed 20 guests"]
     },
     totalPrice: { 
       type: Number, 
@@ -66,6 +58,11 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       maxlength: [500, "Special requests cannot exceed 500 characters"],
       trim: true
+    },
+    identificationDocument: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Document",
+      required: [true, "Identification document is required for verification"],
     },
     cancellationReason: {
       type: String,
@@ -166,9 +163,9 @@ bookingSchema.index({ status: 1, checkInDate: 1 });
 bookingSchema.index({ isPaid: 1 });
 bookingSchema.index({ createdAt: -1 });
 
-// Virtual for total guests
+// Virtual for total guests (now just returns guestCount)
 bookingSchema.virtual('totalGuests').get(function() {
-  return this.guests.adults + this.guests.children;
+  return this.guestCount;
 });
 
 // Virtual for number of nights

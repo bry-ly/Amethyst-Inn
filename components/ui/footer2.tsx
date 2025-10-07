@@ -40,11 +40,11 @@ const Footer2 = ({
     {
       title: "Navigation",
       links: [
-        { text: "Home", url: "#" },
-        { text: "About", url: "#" },
-        { text: "Rooms", url: "#" },
-        { text: "Testimonials", url: "#" },
-        { text: "Contact", url: "#" },
+        { text: "Home", url: "#hero" },
+        { text: "About", url: "#about" },
+        { text: "Rooms", url: "#rooms" },
+        { text: "Testimonials", url: "#testimonials" },
+        { text: "Contact", url: "#contact" },
       ],
     },
     {
@@ -61,7 +61,7 @@ const Footer2 = ({
     {
       title: "Contact",
       links: [
-        { text: "Address", url: "#" },
+        { text: "Address", url: "https://maps.app.goo.gl/uiZGCzFfLYrsD5Ep6" },
         { text: "Contact Us", url: "/contact" },
         { text: "FAQ", url: "#" },
       ],
@@ -80,7 +80,7 @@ const Footer2 = ({
     { text: "Privacy Policy", url: "#" },
   ],
 }: Footer2Props) => {
-  const LogoIcon = logo.icon
+  const LogoIcon = logo.icon;
   return (
     <section className="py-32">
       <div className="container">
@@ -88,7 +88,11 @@ const Footer2 = ({
           <div className="grid grid-cols-2 gap-8 lg:grid-cols-6">
             <div className="col-span-2 mb-8 lg:mb-0">
               <div className="flex items-center gap-2 lg:justify-start">
-                <a href={logo.url} className="flex items-center gap-2" aria-label={logo.title}>
+                <a
+                  href={logo.url}
+                  className="flex items-center gap-2"
+                  aria-label={logo.title}
+                >
                   {LogoIcon ? (
                     <LogoIcon className="h-10 w-10" />
                   ) : (
@@ -113,7 +117,10 @@ const Footer2 = ({
                       key={linkIdx}
                       className="hover:text-primary font-medium"
                     >
-                      <a href={link.url} className="inline-flex items-center gap-2">
+                      <a
+                        href={link.url}
+                        className="inline-flex items-center gap-2"
+                      >
                         {link.icon ? <link.icon className="h-4 w-4" /> : null}
                         <span>{link.text}</span>
                       </a>
@@ -123,7 +130,7 @@ const Footer2 = ({
               </div>
             ))}
           </div>
-          <div className="text-muted-foreground mt-24 flex flex-col justify-between gap-4 border-t pt-8 text-sm font-medium md:flex-row md:items-center">
+          <div className="text-muted-foreground mt-24 flex flex-col justify-between  gap-4 border-t pt-8 text-sm font-medium md:flex-row md:items-center ">
             <p>{copyright}</p>
             <ul className="flex gap-4">
               {bottomLinks.map((link, linkIdx) => (

@@ -24,6 +24,17 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^[0-9+\-()\s]{7,20}$/, "Please use a valid phone number"],
     },
+    address: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    bio: {
+      type: String,
+      required: false,
+      trim: true,
+      maxlength: 500,
+    },
     role: {
       type: String,
       enum: ["guest", "staff", "admin"],

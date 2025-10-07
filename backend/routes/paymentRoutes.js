@@ -1,25 +1,28 @@
 import express from "express";
 import {
-  createPayment,
+  getStripeConfig,
+  createPaymentIntent,
+  confirmPayment,
+  handleStripeWebhook,
   getPaymentByBooking,
-  updateBookingToPaid,
-  getPaymentStatus,
+  refundPayment,
+  getAllPayments
 } from "../controllers/paymentController.js";
 import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Guest: create payment
-router.post("/", protect, authorizeRoles("guest"), createPayment);
-router.put("/:id/pay", protect, updateBookingToPaid);
-router.get("/:id/status", protect, getPaymentStatus);
+// Public routes
+router.get("/config", getStripeConfig);
+router.post("/webhook", handleStripeWebhook);
 
-// Guest/Staff/Admin: get payment info
-router.get(
-  "/:bookingId",
-  protect,
-  authorizeRoles("guest", "staff", "admin"),
-  getPaymentByBooking
-);
+// Protected routes (authenticated users)
+router.post("/create-payment-intent", protect, createPaymentIntent);
+router.post("/confirm", protect, confirmPayment);
+router.get("/booking/:bookingId", protect, getPaymentByBooking);
+
+// Admin routes
+router.get("/", protect, authorizeRoles("admin"), getAllPayments);
+router.post("/:id/refund", protect, authorizeRoles("admin"), refundPayment);
 
 export default router;

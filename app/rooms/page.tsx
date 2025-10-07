@@ -1,30 +1,97 @@
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
+"use client";
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import RoomsListDataTable from "@/components/RoomsListDataTable"
+import { RoomDataTable } from "@/components/rooms/room-data-table"
+import { AuthTokenManager } from "@/utils/cookies"
+import { toast } from "sonner"
+import { PageLoader } from "@/components/common/loading-spinner"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-export const fetchCache = "force-no-store"
+export default function RoomsPage() {
+  const router = useRouter()
+  const [rooms, setRooms] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
-async function requireAdmin() {
-  const token = (await cookies()).get("auth_token")?.value
-  if (!token) redirect("/login?next=/rooms")
-  const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
-  try {
-    const res = await fetch(`${backend}/api/auth/me`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" })
-    if (!res.ok) redirect("/login?next=/rooms")
-    const data = await res.json()
-    if (data?.role !== "admin") redirect("/")
-  } catch {
-    redirect("/login?next=/rooms")
+  useEffect(() => {
+    document.title = "Amethyst Inn - Rooms";
+    checkAuthAndFetchRooms()
+  }, [])
+
+  async function checkAuthAndFetchRooms() {
+    try {
+      const token = AuthTokenManager.getToken()
+      
+      if (!token) {
+        router.push("/login?next=/rooms")
+        return
+      }
+
+      // Check if user is admin
+      const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
+      const authRes = await fetch(`${backend}/api/auth/me`, {
+        headers: { authorization: `Bearer ${token}` },
+        cache: "no-store"
+      })
+
+      if (!authRes.ok) {
+        router.push("/login?next=/rooms")
+        return
+      }
+
+      const userData = await authRes.json()
+      
+      if (userData?.role !== "admin" && userData?.role !== "staff") {
+        toast.error("Access denied. Admin privileges required.")
+        router.push("/")
+        return
+      }
+
+      setIsAuthorized(true)
+
+      // Fetch rooms
+      await fetchRooms(token)
+    } catch (error) {
+      console.error("Auth/fetch error:", error)
+      router.push("/login?next=/rooms")
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
 
-export default async function RoomsPage() {
-  await requireAdmin()
+  async function fetchRooms(token?: string) {
+    try {
+      const authToken = token || AuthTokenManager.getToken()
+      if (!authToken) return
+
+      const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
+      const res = await fetch(`${backend}/api/rooms`, {
+        headers: { authorization: `Bearer ${authToken}` },
+        cache: "no-store"
+      })
+
+      if (!res.ok) {
+        console.error("Failed to fetch rooms:", res.status)
+        toast.error("Failed to load rooms")
+        return
+      }
+
+      const data = await res.json()
+      const roomsData = Array.isArray(data) ? data : (data?.data || data?.rooms || [])
+      setRooms(roomsData)
+    } catch (error) {
+      console.error("Error fetching rooms:", error)
+      toast.error("Error loading rooms")
+    }
+  }
+
+  const handleRoomAdded = () => {
+    fetchRooms()
+  }
+
   return (
     <SidebarProvider
       style={{
@@ -36,7 +103,15 @@ export default async function RoomsPage() {
       <SidebarInset>
         <SiteHeader />
         <div className="mt-4 lg:mt-6">
-          <RoomsListDataTable />
+          {isLoading ? (
+            <PageLoader message="Loading rooms..." />
+          ) : !isAuthorized ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <p className="text-muted-foreground">Checking authorization...</p>
+            </div>
+          ) : (
+            <RoomDataTable data={rooms} onRoomAdded={handleRoomAdded} />
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

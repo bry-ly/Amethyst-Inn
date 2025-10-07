@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface UseApiDataOptions {
   staleTime?: number; // Time in ms before data is considered stale
   cacheTime?: number; // Time in ms to keep data in cache
   refetchOnMount?: boolean; // Whether to refetch when component mounts
   refetchOnWindowFocus?: boolean; // Whether to refetch when window gains focus
+  errorToastTitle?: string;
+  disableErrorToast?: boolean;
 }
 
 interface CacheEntry<T> {
@@ -29,6 +32,8 @@ export function useApiData<T>(
     cacheTime = 10 * 60 * 1000, // 10 minutes
     refetchOnMount = true,
     refetchOnWindowFocus = false,
+    errorToastTitle = 'Request failed',
+    disableErrorToast = false,
   } = options;
 
   const cacheKey = url;
@@ -125,10 +130,19 @@ export function useApiData<T>(
         }
 
         const response = await fetch(url, { headers });
-        
+
         if (!response.ok) {
-          const text = await response.text();
-          throw new Error(`Failed to fetch: ${response.status} ${text}`);
+          let errorText = await response.text();
+          let errorMessage = `Failed to fetch: ${response.status}`;
+          try {
+            const parsed = JSON.parse(errorText);
+            errorMessage = parsed?.error || parsed?.message || errorMessage;
+          } catch {
+            if (errorText) {
+              errorMessage = `${errorMessage} ${errorText}`.trim();
+            }
+          }
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -140,9 +154,10 @@ export function useApiData<T>(
         }
         
         // Update cache
+        const timestamp = Date.now();
         cache.set(cacheKey, {
           data: result,
-          timestamp: now,
+          timestamp,
           isLoading: false,
           error: null,
         });
@@ -150,11 +165,15 @@ export function useApiData<T>(
         return { data: result, error: null };
       } catch (err: any) {
         const errorMessage = err?.message || 'Unknown error';
-        
+        if (!disableErrorToast) {
+          toast.error(errorMessage, { description: errorToastTitle });
+        }
+
+        const timestamp = Date.now();
         // Cache error state
         cache.set(cacheKey, {
           data: null,
-          timestamp: now,
+          timestamp,
           isLoading: false,
           error: errorMessage,
         });
@@ -250,6 +269,10 @@ export function useApiMutation<T, K = any>(
     onSuccess?: (data: T) => void;
     onError?: (error: string) => void;
     invalidateKeys?: string[]; // Cache keys to invalidate after mutation
+    successToastTitle?: string;
+    disableSuccessToast?: boolean;
+    errorToastTitle?: string;
+    disableErrorToast?: boolean;
   } = {}
 ) {
   const [loading, setLoading] = useState(false);
@@ -275,8 +298,17 @@ export function useApiMutation<T, K = any>(
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Failed to ${options.method || 'POST'}: ${response.status} ${text}`);
+        let errorText = await response.text();
+        let errorMessage = `Failed to ${options.method || 'POST'}: ${response.status}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = parsed?.error || parsed?.message || errorMessage;
+        } catch {
+          if (errorText) {
+            errorMessage = `${errorMessage} ${errorText}`.trim();
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -289,11 +321,19 @@ export function useApiMutation<T, K = any>(
       }
 
       options.onSuccess?.(result);
+      if (!options.disableSuccessToast) {
+        toast.success(options.successToastTitle || 'Action completed');
+      }
       return result;
     } catch (err: any) {
       const errorMessage = err?.message || 'Unknown error';
       setError(errorMessage);
       options.onError?.(errorMessage);
+      if (!options.disableErrorToast) {
+        toast.error(errorMessage, {
+          description: options.errorToastTitle || 'Request failed',
+        });
+      }
       throw err;
     } finally {
       setLoading(false);

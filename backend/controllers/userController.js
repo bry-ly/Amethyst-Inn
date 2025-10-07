@@ -89,6 +89,15 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (req.body.password) {
     user.password = req.body.password;
   }
+  if (typeof req.body.phone !== "undefined") {
+    user.phone = req.body.phone;
+  }
+  if (typeof req.body.address !== "undefined") {
+    user.address = req.body.address;
+  }
+  if (typeof req.body.bio !== "undefined") {
+    user.bio = req.body.bio;
+  }
 
   const updatedUser = await user.save();
 
@@ -97,6 +106,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
     name: updatedUser.name,
     email: updatedUser.email,
     role: updatedUser.role,
+    phone: updatedUser.phone,
+    address: updatedUser.address,
+    bio: updatedUser.bio,
     token: generateToken(updatedUser._id),
   });
 });
@@ -143,10 +155,27 @@ export const updateUser = asyncHandler(async (req, res) => {
   user.name = req.body.name || user.name;
   user.email = req.body.email || user.email;
   user.role = req.body.role || user.role;
+  if (typeof req.body.phone !== "undefined") {
+    user.phone = req.body.phone;
+  }
+  if (typeof req.body.address !== "undefined") {
+    user.address = req.body.address;
+  }
+  if (typeof req.body.bio !== "undefined") {
+    user.bio = req.body.bio;
+  }
 
   const updatedUser = await user.save();
 
-  res.json(updatedUser);
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    phone: updatedUser.phone,
+    address: updatedUser.address,
+    bio: updatedUser.bio,
+  });
 });
 
 /**
