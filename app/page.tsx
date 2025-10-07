@@ -13,7 +13,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { toast } from "sonner";
 import { AuthTokenManager, CookieConsent } from "@/utils/cookies";
 import { CookieConsentToast } from "@/components/common/cookie-consent-toast";
@@ -172,7 +172,9 @@ export default function Home() {
       <div className=" border-b-primary">
       <About/>
       </div>
-        <RoomsSection />
+        <Suspense fallback={<div className="text-center text-muted-foreground py-8">Loading rooms...</div>}>
+          <RoomsSection />
+        </Suspense>
         <TestimonialsSection />
       <AmenitiesSection />
       <ContactSection />

@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params
   const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
   try {
     const res = await fetch(target, {
@@ -28,8 +31,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params
   const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
 
   try {
@@ -59,8 +65,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params
   const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
 
   try {

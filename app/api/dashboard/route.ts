@@ -1,5 +1,53 @@
 import { NextResponse } from 'next/server'
 
+interface RoomSummary {
+  status?: string
+  [key: string]: unknown
+}
+
+interface BookingSummary {
+  status?: string
+  totalAmount?: number
+  createdAt?: string
+  checkInDate?: string
+  [key: string]: unknown
+}
+
+interface UserSummary {
+  role?: string
+  [key: string]: unknown
+}
+
+interface Metrics {
+  totalRevenue: number
+  monthlyRevenue: number
+  totalBookings: number
+  activeBookings: number
+  totalRooms: number
+  availableRooms: number
+  occupiedRooms: number
+  maintenanceRooms: number
+  occupancyRate: number
+  totalUsers: number
+  guestUsers: number
+  staffUsers: number
+}
+
+interface ChartDataPoint {
+  date: string
+  bookings: number
+  revenue: number
+}
+
+interface DashboardData {
+  metrics: Metrics
+  chartData: ChartDataPoint[]
+}
+
+const isRoomArray = (value: unknown): value is RoomSummary[] => Array.isArray(value)
+const isBookingArray = (value: unknown): value is BookingSummary[] => Array.isArray(value)
+const isUserArray = (value: unknown): value is UserSummary[] => Array.isArray(value)
+
 export async function GET() {
   const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
   const baseUrl = `${backend.replace(/\/$/, '')}/api`
@@ -12,26 +60,30 @@ export async function GET() {
       fetch(`${baseUrl}/users`)
     ])
 
-    const [rooms, bookings, users] = await Promise.all([
+    const [roomsRaw, bookingsRaw, usersRaw] = await Promise.all([
       roomsRes.json(),
       bookingsRes.json(),
       usersRes.json()
     ])
 
+    const rooms = isRoomArray(roomsRaw) ? roomsRaw : []
+    const bookings = isBookingArray(bookingsRaw) ? bookingsRaw : []
+    const users = isUserArray(usersRaw) ? usersRaw : []
+
     // Calculate dashboard metrics
-    const totalRooms = Array.isArray(rooms) ? rooms.length : 0
-    const availableRooms = Array.isArray(rooms) ? rooms.filter((room: any) => room.status === 'available').length : 0
-    const occupiedRooms = Array.isArray(rooms) ? rooms.filter((room: any) => room.status === 'occupied').length : 0
-    const maintenanceRooms = Array.isArray(rooms) ? rooms.filter((room: any) => room.status === 'maintenance').length : 0
+    const totalRooms = rooms.length
+    const availableRooms = rooms.filter(room => room.status === 'available').length
+    const occupiedRooms = rooms.filter(room => room.status === 'occupied').length
+    const maintenanceRooms = rooms.filter(room => room.status === 'maintenance').length
 
-    const totalBookings = Array.isArray(bookings) ? bookings.length : 0
-    const activeBookings = Array.isArray(bookings) ? bookings.filter((booking: any) => 
+    const totalBookings = bookings.length
+    const activeBookings = bookings.filter(booking => 
       booking.status === 'confirmed' || booking.status === 'checked-in'
-    ).length : 0
+    ).length
 
-    const totalUsers = Array.isArray(users) ? users.length : 0
-    const guestUsers = Array.isArray(users) ? users.filter((user: any) => user.role === 'guest').length : 0
-    const staffUsers = Array.isArray(users) ? users.filter((user: any) => user.role === 'staff').length : 0
+    const totalUsers = users.length
+    const guestUsers = users.filter(user => user.role === 'guest').length
+    const staffUsers = users.filter(user => user.role === 'staff').length
 
     // Calculate revenue from bookings
     let totalRevenue = 0
@@ -39,13 +91,13 @@ export async function GET() {
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
 
-    if (Array.isArray(bookings)) {
-      bookings.forEach((booking: any) => {
-        if (booking.totalAmount) {
+    if (bookings.length > 0) {
+      bookings.forEach(booking => {
+        if (typeof booking.totalAmount === 'number') {
           totalRevenue += booking.totalAmount
           
           // Check if booking is from current month
-          const bookingDate = new Date(booking.createdAt || booking.checkInDate)
+          const bookingDate = new Date(booking.createdAt ?? booking.checkInDate ?? '')
           if (bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear) {
             monthlyRevenue += booking.totalAmount
           }
@@ -66,18 +118,18 @@ export async function GET() {
       const dateStr = date.toISOString().split('T')[0]
       
       // Count bookings for this date
-      const dayBookings = Array.isArray(bookings) ? bookings.filter((booking: any) => {
-        const bookingDate = new Date(booking.createdAt || booking.checkInDate)
+      const dayBookings = bookings.filter(booking => {
+        const bookingDate = new Date(booking.createdAt ?? booking.checkInDate ?? '')
         return bookingDate.toISOString().split('T')[0] === dateStr
-      }).length : 0
+      }).length
       
       // Count revenue for this date
-      const dayRevenue = Array.isArray(bookings) ? bookings
-        .filter((booking: any) => {
-          const bookingDate = new Date(booking.createdAt || booking.checkInDate)
+      const dayRevenue = bookings
+        .filter(booking => {
+          const bookingDate = new Date(booking.createdAt ?? booking.checkInDate ?? '')
           return bookingDate.toISOString().split('T')[0] === dateStr
         })
-        .reduce((sum: number, booking: any) => sum + (booking.totalAmount || 0), 0) : 0
+        .reduce((sum: number, booking) => sum + (booking.totalAmount ?? 0), 0)
 
       chartData.push({
         date: dateStr,
@@ -86,7 +138,7 @@ export async function GET() {
       })
     }
 
-    const dashboardData = {
+    const dashboardData: DashboardData = {
       metrics: {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,

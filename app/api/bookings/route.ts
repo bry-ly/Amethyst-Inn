@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     try {
       const data = JSON.parse(text)
       return NextResponse.json(data, { status: res.status })
-    } catch (e) {
+    } catch {
       return new Response(text, { status: res.status })
     }
   } catch (err) {

@@ -97,6 +97,10 @@ interface RoomCardProps {
 
 export function RoomCard({ room, openBookingId }: RoomCardProps) {
   const router = useRouter();
+  const routerRef = React.useRef(router);
+  React.useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showBookingSheet, setShowBookingSheet] = useState(false);
@@ -168,17 +172,9 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
       if (AuthTokenManager.hasToken()) {
         setShowBookingSheet(true);
       } else {
-        try {
-          const { useRouter } = require("next/navigation");
-          const router = useRouter();
-          router.push(
-            `/login?next=${encodeURIComponent(`/rooms?book=${room._id}`)}`
-          );
-        } catch (e) {
-          window.location.href = `/login?next=${encodeURIComponent(
-            `/rooms?book=${room._id}`
-          )}`;
-        }
+        routerRef.current.push(
+          `/login?next=${encodeURIComponent(`/rooms?book=${room._id}`)}`
+        );
       }
     }
   }, [openBookingId, room._id]);
@@ -395,12 +391,10 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                       fill
                       sizes="(max-width: 768px) 100vw, 400px"
                       className="object-cover"
-                      onError={(e) => {
-                        // fallback to placeholder if image fails
-                        // @ts-ignore
-                        e.currentTarget.src = "/placeholder-room.jpg";
+                      onError={(event) => {
+                        const target = event.currentTarget;
+                        target.src = "/placeholder-room.jpg";
                       }}
-                      loading="lazy"
                     />
                   </div>
 

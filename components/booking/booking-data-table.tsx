@@ -493,9 +493,15 @@ function BookingDataTable() {
 
   const rows = React.useMemo<Booking[]>(() => {
     if (Array.isArray(data)) return data;
-    const anyResp: any = data as any;
-    if (Array.isArray(anyResp?.data)) return anyResp.data;
-    if (Array.isArray(anyResp?.bookings)) return anyResp.bookings;
+    if (data && typeof data === 'object') {
+      const possibleArrays = ['data', 'bookings'] as const;
+      for (const key of possibleArrays) {
+        const value = (data as Record<typeof key, unknown>)[key];
+        if (Array.isArray(value)) {
+          return value as Booking[];
+        }
+      }
+    }
     return [];
   }, [data]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -32,7 +32,6 @@ import {
   Phone,
   Mail,
   User,
-  CreditCard,
   CheckCircle2,
   XCircle,
   Clock,
@@ -131,8 +130,67 @@ function UserProfileEditForm({
   );
 }
 
+type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "cancelled"
+  | "completed"
+  | "checked_in"
+  | "checked_out"
+  | "no_show";
+
+type BookingGuestInfo = {
+  adults?: number;
+  children?: number;
+};
+
+type BookingRoomInfo = {
+  number?: string;
+  title?: string;
+  name?: string;
+  type?: string;
+};
+
+type BookingRecord = {
+  _id: string;
+  status?: BookingStatus;
+  checkInDate?: string;
+  checkOutDate?: string;
+  startDate?: string;
+  endDate?: string;
+  from?: string;
+  to?: string;
+  checkIn?: string;
+  checkOut?: string;
+  room?: BookingRoomInfo;
+  guestCount?: number;
+  guests?: BookingGuestInfo;
+  totalPrice?: number;
+  price?: number;
+  specialRequests?: string;
+};
+
+type BookingActionLoading = Record<string, boolean>;
+
+type CancellationResponse = {
+  error?: string;
+  message?: string;
+  data?: {
+    refundEligible?: boolean;
+    refundAmount?: number;
+  };
+};
+
+type BookingsApiResponse = {
+  data?: BookingRecord[];
+  bookings?: BookingRecord[];
+  [key: string]: unknown;
+};
+
+type StatusIconComponent = React.ComponentType<{ className?: string }>;
+
 function getStatusConfig(status: string) {
-  const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ComponentType<any> }> = {
+  const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: StatusIconComponent }> = {
     pending: { label: "Pending", variant: "secondary", icon: Clock },
     confirmed: { label: "Confirmed", variant: "default", icon: CheckCircle2 },
     cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle },
@@ -150,16 +208,16 @@ function BookingCard({
   onDelete,
   actionLoading,
 }: {
-  booking: any;
+  booking: BookingRecord;
   onCancel: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  actionLoading: Record<string, boolean>;
+  actionLoading: BookingActionLoading;
 }) {
   const status = getStatusConfig(booking.status || "pending");
   const StatusIcon = status.icon;
   
-  const checkInDate = new Date(booking.checkInDate || booking.startDate || booking.from || booking.checkIn);
-  const checkOutDate = new Date(booking.checkOutDate || booking.endDate || booking.to || booking.checkOut);
+  const checkInDate = new Date(booking.checkInDate || booking.startDate || booking.from || booking.checkIn || new Date().toISOString());
+  const checkOutDate = new Date(booking.checkOutDate || booking.endDate || booking.to || booking.checkOut || new Date().toISOString());
   
   // Calculate hours until check-in for 24-hour cancellation policy
   const now = new Date();
@@ -220,7 +278,7 @@ function BookingCard({
               <span className="text-muted-foreground">
                 {booking.guestCount 
                   ? `${booking.guestCount} ${booking.guestCount === 1 ? "Guest" : "Guests"}`
-                  : `${booking.guests.adults || 0} ${booking.guests.adults === 1 ? "Adult" : "Adults"}${booking.guests.children > 0 ? `, ${booking.guests.children} ${booking.guests.children === 1 ? "Child" : "Children"}` : ""}`
+                  : `${booking.guests?.adults || 0} ${booking.guests?.adults === 1 ? "Adult" : "Adults"}${(booking.guests?.children || 0) > 0 ? `, ${booking.guests?.children} ${booking.guests?.children === 1 ? "Child" : "Children"}` : ""}`
                 }
               </span>
             )}
@@ -288,11 +346,11 @@ function BookingsList({
   onDelete,
   actionLoading,
 }: {
-  bookings: any[];
+  bookings: BookingRecord[];
   loading: boolean;
   onCancel: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  actionLoading: Record<string, boolean>;
+  actionLoading: BookingActionLoading;
 }) {
   if (loading)
     return (
@@ -333,15 +391,17 @@ function BookingsList({
   );
 }
 
-function BookingStats({ bookings }: { bookings: any[] }) {
-  const stats = {
-    total: bookings.length,
-    pending: bookings.filter(b => b.status === "pending").length,
-    confirmed: bookings.filter(b => b.status === "confirmed" || b.status === "checked_in").length,
-    completed: bookings.filter(b => b.status === "completed" || b.status === "checked_out").length,
-    cancelled: bookings.filter(b => b.status === "cancelled").length,
-    totalSpent: bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0),
-  };
+function BookingStats({ bookings }: { bookings: BookingRecord[] }) {
+  const stats = useMemo(() => {
+    return {
+      total: bookings.length,
+      pending: bookings.filter(b => b.status === "pending").length,
+      confirmed: bookings.filter(b => b.status === "confirmed" || b.status === "checked_in").length,
+      completed: bookings.filter(b => b.status === "completed" || b.status === "checked_out").length,
+      cancelled: bookings.filter(b => b.status === "cancelled").length,
+      totalSpent: bookings.reduce((sum, b) => sum + (b.totalPrice ?? 0), 0),
+    };
+  }, [bookings]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -413,11 +473,9 @@ export function UserProfileDashboard({
   });
   const [loading, setLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [actionLoading, setActionLoading] = useState<BookingActionLoading>({});
 
   // Effect: profile and bookings
   useEffect(() => {
@@ -475,23 +533,25 @@ export function UserProfileDashboard({
         throw new Error(`Failed to load bookings: ${res.status}`);
       }
       
-      const response = await res.json();
+      const response = (await res.json()) as BookingsApiResponse | BookingRecord[];
       console.log("Bookings API response:", response);
       
       // Backend returns { success: true, data: [...] } format
-      const bookingsData = response.data || response;
+      const bookingsData = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.bookings)
+            ? response.bookings
+            : [];
       
       console.log("Processed bookings data:", bookingsData);
       
       // Backend already filters by user, but double-check for client-side
-      setBookings(
-        Array.isArray(bookingsData)
-          ? bookingsData
-          : []
-      );
+      setBookings(bookingsData);
       
       console.log("Set bookings count:", Array.isArray(bookingsData) ? bookingsData.length : 0);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error loading bookings:", error);
       toast.error("Could not load bookings");
     } finally {
@@ -522,7 +582,7 @@ export function UserProfileDashboard({
           })
         });
         
-        const data = await res.json();
+        const data = (await res.json()) as CancellationResponse;
         
         if (!res.ok) {
           throw new Error(data.error || data.message || "Failed to cancel booking");
@@ -530,14 +590,15 @@ export function UserProfileDashboard({
         
         toast.success("Booking cancelled successfully", {
           description: data.data?.refundEligible 
-            ? `Refund amount: ₱${data.data.refundAmount.toLocaleString()}` 
+            ? `Refund amount: ₱${(data.data.refundAmount ?? 0).toLocaleString()}` 
             : "No refund available",
           duration: 5000,
         });
         await loadBookings();
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to cancel booking";
         toast.error("Cancellation Failed", {
-          description: err?.message || "Failed to cancel booking",
+          description: message,
           duration: 5000,
         });
       } finally {
@@ -556,8 +617,9 @@ export function UserProfileDashboard({
         // Only hide booking on client side, don't delete from database
         setBookings((prev) => prev.filter((b) => b._id !== id));
         toast.success("Booking hidden from view");
-      } catch (err: any) {
-        toast.error(err?.message || "Failed to hide booking");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to hide booking";
+        toast.error(message);
       } finally {
         setAction(id, false);
       }
@@ -601,8 +663,9 @@ export function UserProfileDashboard({
       toast.success("Profile updated");
       onUpdated?.(updated || { ...payload });
       setIsEditOpen(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update profile");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update profile";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

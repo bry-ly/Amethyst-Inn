@@ -17,11 +17,27 @@ interface CacheEntry<T> {
   error: string | null;
 }
 
+type FetchResult = {
+  data: unknown;
+  error: string | null;
+};
+
 // Global cache store
-const cache = new Map<string, CacheEntry<any>>();
+const cache = new Map<string, CacheEntry<unknown>>();
 
 // Request deduplication store
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<FetchResult>>();
+
+const getCacheEntry = <T,>(key: string): CacheEntry<T> | undefined => {
+  return cache.get(key) as CacheEntry<T> | undefined;
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return typeof error === 'string' ? error : 'Unknown error';
+};
 
 export function useApiData<T>(
   url: string,
@@ -37,8 +53,7 @@ export function useApiData<T>(
   } = options;
 
   const cacheKey = url;
-  const cachedEntry = cache.get(cacheKey);
-  const now = Date.now();
+  const cachedEntry = getCacheEntry<T>(cacheKey);
   
   // Initialize state with cached data if available
   const [data, setData] = useState<T | null>(() => {
@@ -80,20 +95,23 @@ export function useApiData<T>(
     // Check if request is already pending
     if (pendingRequests.has(cacheKey)) {
       try {
-        const result = await pendingRequests.get(cacheKey);
-        if (mountedRef.current) {
-          setData(result.data);
-          setLoading(false);
-          setError(result.error);
+        const existingPromise = pendingRequests.get(cacheKey);
+        if (existingPromise) {
+          const result = await existingPromise;
+          if (result && mountedRef.current) {
+            setData(result.data as T);
+            setLoading(false);
+            setError(result.error);
+          }
         }
         return;
-      } catch (err) {
+      } catch {
         // Request failed, continue with new request
       }
     }
 
     // Check cache first
-    const currentCachedEntry = cache.get(cacheKey);
+    const currentCachedEntry = getCacheEntry<T>(cacheKey);
     const currentTime = Date.now();
     
     if (currentCachedEntry && !forceRefetch) {
@@ -101,8 +119,8 @@ export function useApiData<T>(
       
       if (!isStale && !currentCachedEntry.isLoading) {
         // Use cached data immediately - don't set loading to false since it's already false
-        if (mountedRef.current && data !== currentCachedEntry.data) {
-          setData(currentCachedEntry.data);
+        if (mountedRef.current) {
+          setData(prev => (prev !== currentCachedEntry.data ? currentCachedEntry.data : prev));
           setError(currentCachedEntry.error);
         }
         return;
@@ -125,14 +143,14 @@ export function useApiData<T>(
         try {
           const token = localStorage.getItem('token');
           if (token) headers['authorization'] = `Bearer ${token}`;
-        } catch (e) {
+        } catch {
           // ignore localStorage errors
         }
 
         const response = await fetch(url, { headers });
 
         if (!response.ok) {
-          let errorText = await response.text();
+          const errorText = await response.text();
           let errorMessage = `Failed to fetch: ${response.status}`;
           try {
             const parsed = JSON.parse(errorText);
@@ -162,9 +180,9 @@ export function useApiData<T>(
           error: null,
         });
 
-        return { data: result, error: null };
-      } catch (err: any) {
-        const errorMessage = err?.message || 'Unknown error';
+        return { data: result as unknown, error: null };
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         if (!disableErrorToast) {
           toast.error(errorMessage, { description: errorToastTitle });
         }
@@ -178,7 +196,7 @@ export function useApiData<T>(
           error: errorMessage,
         });
 
-        throw { data: null, error: errorMessage };
+        throw new Error(errorMessage);
       } finally {
         // Remove from pending requests
         pendingRequests.delete(cacheKey);
@@ -191,18 +209,19 @@ export function useApiData<T>(
     try {
       const result = await requestPromise;
       if (mountedRef.current) {
-        setData(result.data);
+        setData(result.data as T);
         setLoading(false);
         setError(result.error);
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       if (mountedRef.current) {
         setData(null);
         setLoading(false);
-        setError(err.error || err.message || 'Unknown error');
+        setError(errorMessage);
       }
     }
-  }, [url, cacheKey, staleTime]);
+  }, [url, cacheKey, staleTime, disableErrorToast, errorToastTitle]);
 
   // Refetch function
   const refetch = useCallback(() => {
@@ -262,7 +281,7 @@ export function useApiData<T>(
 }
 
 // Hook for mutations (POST, PUT, DELETE)
-export function useApiMutation<T, K = any>(
+export function useApiMutation<T, K = unknown>(
   url: string,
   options: {
     method?: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -278,6 +297,17 @@ export function useApiMutation<T, K = any>(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const {
+    method = 'POST',
+    onSuccess,
+    onError,
+    invalidateKeys,
+    successToastTitle,
+    disableSuccessToast,
+    errorToastTitle,
+    disableErrorToast,
+  } = options;
+
   const mutate = useCallback(async (payload?: K) => {
     setLoading(true);
     setError(null);
@@ -287,19 +317,19 @@ export function useApiMutation<T, K = any>(
       try {
         const token = localStorage.getItem('token');
         if (token) headers['authorization'] = `Bearer ${token}`;
-      } catch (e) {
+      } catch {
         // ignore localStorage errors
       }
 
       const response = await fetch(url, {
-        method: options.method || 'POST',
+        method,
         headers,
         body: payload ? JSON.stringify(payload) : undefined,
       });
 
       if (!response.ok) {
-        let errorText = await response.text();
-        let errorMessage = `Failed to ${options.method || 'POST'}: ${response.status}`;
+        const errorText = await response.text();
+        let errorMessage = `Failed to ${method}: ${response.status}`;
         try {
           const parsed = JSON.parse(errorText);
           errorMessage = parsed?.error || parsed?.message || errorMessage;
@@ -311,34 +341,34 @@ export function useApiMutation<T, K = any>(
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as T;
 
       // Invalidate specified cache keys
-      if (options.invalidateKeys) {
-        options.invalidateKeys.forEach(key => {
+      if (invalidateKeys) {
+        invalidateKeys.forEach(key => {
           cache.delete(key);
         });
       }
 
-      options.onSuccess?.(result);
-      if (!options.disableSuccessToast) {
-        toast.success(options.successToastTitle || 'Action completed');
+      onSuccess?.(result);
+      if (!disableSuccessToast) {
+        toast.success(successToastTitle || 'Action completed');
       }
       return result;
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Unknown error';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       setError(errorMessage);
-      options.onError?.(errorMessage);
-      if (!options.disableErrorToast) {
+      onError?.(errorMessage);
+      if (!disableErrorToast) {
         toast.error(errorMessage, {
-          description: options.errorToastTitle || 'Request failed',
+          description: errorToastTitle || 'Request failed',
         });
       }
-      throw err;
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [url, options]);
+  }, [url, method, disableErrorToast, disableSuccessToast, errorToastTitle, invalidateKeys, onError, onSuccess, successToastTitle]);
 
   return {
     mutate,

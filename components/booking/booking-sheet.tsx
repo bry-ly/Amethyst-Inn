@@ -671,7 +671,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
                         <p className="font-medium mb-1">Please upload a valid ID or document</p>
                         <p className="text-blue-600 dark:text-blue-300">
                           To ensure the security of all our guests, we require a valid government-issued ID 
-                          or identification document (Driver's License, Passport, National ID, etc.)
+                          or identification document (Driver&apos;s License, Passport, National ID, etc.)
                         </p>
                         <p className="text-xs mt-2 text-blue-500 dark:text-blue-400">
                           Accepted formats: JPG, PNG, DOCS, PDF • Max size: 5MB
