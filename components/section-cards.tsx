@@ -1,4 +1,7 @@
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
+"use client"
+
+import * as React from "react"
+import { IconTrendingDown, IconTrendingUp, IconBed, IconUsers, IconCalendar, IconCurrencyPeso } from "@tabler/icons-react"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -9,92 +12,118 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useDashboardData } from "@/hooks/use-dashboard-data"
 
 export function SectionCards() {
+  const { data: dashboardData } = useDashboardData()
+
+  if (!dashboardData) {
+    return null
+  }
+
+  const { metrics } = dashboardData
+
+  // Calculate trends (simplified - in real app you'd compare with previous period)
+  const revenueTrend = metrics.monthlyRevenue > 0 ? 'up' : 'neutral'
+  const bookingTrend = metrics.activeBookings > 0 ? 'up' : 'neutral'
+  const occupancyTrend = metrics.occupancyRate > 50 ? 'up' : 'down'
+  const userTrend = metrics.guestUsers > 0 ? 'up' : 'neutral'
+
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Revenue</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            $1,250.00
+            <span className="inline-flex items-center gap-1"><IconCurrencyPeso className="size-5" />{metrics.totalRevenue.toLocaleString()}</span>
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingUp />
-              +12.5%
+              {revenueTrend === 'up' ? <IconTrendingUp /> : <IconTrendingDown />}
+              <span className="inline-flex items-center gap-1"><IconCurrencyPeso className="size-4" />{metrics.monthlyRevenue.toLocaleString()}</span>
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month <IconTrendingUp className="size-4" />
+            {revenueTrend === 'up' ? 'Revenue growing' : 'Revenue stable'} 
+            {revenueTrend === 'up' ? <IconTrendingUp className="size-4" /> : <IconCurrencyPeso className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            Visitors for the last 6 months
+            <span className="inline-flex items-center gap-1"><IconCurrencyPeso className="size-4" />{metrics.monthlyRevenue.toLocaleString()}</span> this month
           </div>
         </CardFooter>
       </Card>
+      
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>New Customers</CardDescription>
+          <CardDescription>Active Bookings</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1,234
+            {metrics.activeBookings}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingDown />
-              -20%
+              {bookingTrend === 'up' ? <IconTrendingUp /> : <IconTrendingDown />}
+              {metrics.totalBookings} total
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Down 20% this period <IconTrendingDown className="size-4" />
+            {bookingTrend === 'up' ? 'Bookings active' : 'No active bookings'} 
+            {bookingTrend === 'up' ? <IconTrendingUp className="size-4" /> : <IconCalendar className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            Acquisition needs attention
+            {metrics.totalBookings} total bookings
           </div>
         </CardFooter>
       </Card>
+      
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Active Accounts</CardDescription>
+          <CardDescription>Room Occupancy</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            45,678
+            {metrics.occupancyRate.toFixed(1)}%
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingUp />
-              +12.5%
+              {occupancyTrend === 'up' ? <IconTrendingUp /> : <IconTrendingDown />}
+              {metrics.occupiedRooms}/{metrics.totalRooms}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong user retention <IconTrendingUp className="size-4" />
+            {occupancyTrend === 'up' ? 'High occupancy' : 'Low occupancy'} 
+            {occupancyTrend === 'up' ? <IconTrendingUp className="size-4" /> : <IconBed className="size-4" />}
           </div>
-          <div className="text-muted-foreground">Engagement exceed targets</div>
+          <div className="text-muted-foreground">
+            {metrics.availableRooms} rooms available
+          </div>
         </CardFooter>
       </Card>
+      
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Growth Rate</CardDescription>
+          <CardDescription>Total Guests</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            4.5%
+            {metrics.guestUsers}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingUp />
-              +4.5%
+              {userTrend === 'up' ? <IconTrendingUp /> : <IconTrendingDown />}
+              {metrics.totalUsers} users
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady performance increase <IconTrendingUp className="size-4" />
+            {userTrend === 'up' ? 'Guest registrations' : 'No guests yet'} 
+            {userTrend === 'up' ? <IconTrendingUp className="size-4" /> : <IconUsers className="size-4" />}
           </div>
-          <div className="text-muted-foreground">Meets growth projections</div>
+          <div className="text-muted-foreground">
+            {metrics.staffUsers} staff members
+          </div>
         </CardFooter>
       </Card>
     </div>

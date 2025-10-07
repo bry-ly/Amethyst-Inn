@@ -21,13 +21,16 @@ import {
   IconBed,
   IconCurrencyPeso,
   IconDiamond,
-  IconReceipt
+  IconReceipt,
+  IconCalendar,
+  IconBedFlat
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +40,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { DollarSignIcon } from "lucide-react"
+
 
 const data = {
   user: {
@@ -45,35 +48,35 @@ const data = {
     email: "amethystinnadmin@gmail.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  navMain: [
+    navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
       title: "Room Management",
-      url: "#",
-      icon: IconHome,
+      url: "/rooms",
+      icon: IconBedFlat,
     },
     {
       title: "Booking Management",
-      url: "#",
-      icon: IconBook,
+      url: "/booking",
+      icon: IconCalendar,
     },
     {
       title: "Payment Management",
-      url: "#",
+      url: "/payments",
       icon: IconCurrencyPeso,
     },
     {
       title: "Guest Management",
-      url: "#",
+      url: "/guests",
       icon: IconUsers,  
     },
     {
       title: "User Management",
-      url: "#",
+      url: "/users",
       icon: IconUsers,
     },
   ],

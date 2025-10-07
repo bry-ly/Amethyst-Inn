@@ -18,5 +18,7 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@shadcnblocks": "https://www.shadcnblocks.com"
+  }
 }

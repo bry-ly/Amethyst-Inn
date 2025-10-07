@@ -1,0 +1,90 @@
+Base URL (local): http://localhost:5000/api
+
+--- Auth ---
+POST /auth/register
+  - Body (JSON): { "name": "Name", "email": "email@example.com", "password": "password" }
+  - Response: { _id, name, email, role, token }
+  - Note: Controller sets role to "guest" by default.
+
+POST /auth/login
+  - Body (JSON): { "email": "email@example.com", "password": "password" }
+  - Response: { _id, name, email, role, token }
+  - Rate limited by login limiter.
+
+GET /auth/me
+  - Protected: Authorization: Bearer <token>
+  - Response: logged-in user object
+
+--- Users (admin only) ---
+GET /users/
+  - Protected + role: admin
+GET /users/:id
+  - Protected + role: admin
+PUT /users/:id
+  - Protected + role: admin
+  - Body: JSON fields to update
+DELETE /users/:id
+  - Protected + role: admin
+
+--- Rooms ---
+GET /rooms/
+  - Public: list rooms
+GET /rooms/:id
+  - Public: get room by id
+POST /rooms/
+  - Protected + role: admin
+  - Body: { number, type, price, description, amenities }
+PUT /rooms/:id
+  - Protected + role: admin
+  - Body: fields to update
+DELETE /rooms/:id
+  - Protected + role: admin
+
+--- Bookings ---
+POST /bookings/
+  - Protected + role: guest
+  - Body: { roomId, startDate, endDate, guests }
+GET /bookings/my
+  - Protected + role: guest
+  - Response: bookings for logged-in guest
+GET /bookings/
+  - Protected + role: staff|admin
+GET /bookings/:id
+  - Protected + role: staff|admin
+PUT /bookings/:id
+  - Protected + role: staff|admin
+  - Body: e.g., { status }
+PUT /bookings/:id/cancel
+  - Protected + role: guest
+
+--- Payments ---
+POST /payments/
+  - Protected + role: guest
+  - Body: { bookingId, amount, method }
+PUT /payments/:id/pay
+  - Protected
+GET /payments/:id/status
+  - Protected
+GET /payments/:bookingId
+  - Protected + role: guest|staff|admin
+
+--- Guests ---
+POST /guests/
+  - Protected + role: guest
+  - Body: { userId, phone, address }
+GET /guests/me
+  - Protected + role: guest
+PUT /guests/me
+  - Protected + role: guest
+GET /guests/me/bookings
+  - Protected + role: guest
+PUT /guests/me/bookings/:id/cancel
+  - Protected + role: guest
+GET /guests/
+  - Protected + role: staff|admin
+
+--- Notes ---
+- Authorization header format: Authorization: Bearer <JWT>
+- To obtain a token: POST /auth/login with valid credentials or use /auth/register response token for new users.
+- Admin users should be created via seeder (`seeder/seeder.js`) or directly in DB; register API sets role to "guest" by default.
+

@@ -1,36 +1,151 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Amethyst Inn System
+
+This is a full-stack hotel management system built with Next.js (frontend) and Express.js (backend).
+
+## Project Structure
+
+```
+frontend/
+├── app/                    # Next.js App Router pages and API routes
+├── components/             # React components
+├── backend/               # Express.js backend server
+│   ├── config/           # Database configuration
+│   ├── controllers/      # Route controllers
+│   ├── middleware/       # Express middleware
+│   ├── models/          # MongoDB models
+│   ├── routes/          # API routes
+│   ├── utils/           # Utility functions
+│   └── server.js        # Main server file
+├── lib/                  # Utility libraries
+├── hooks/               # Custom React hooks
+└── public/              # Static assets
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js (v18 or higher)
+- MongoDB database
+- npm or pnpm
+
+### Installation
+
+1. Install frontend dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install backend dependencies:
+```bash
+cd backend
+npm install
+cd ..
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env` file in the `backend/` directory with the following variables:
 
-## Learn More
+```env
+MONGO_URI=your_mongodb_connection_string
+DATABASE_NAME=AmethystInn
+PORT=5000
+NODE_ENV=development
+JWT_SECRET=your_jwt_secret
+CLIENT_ORIGIN=http://localhost:3000
+NEXT_PUBLIC_API_BASE=http://localhost:5000
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Running the Application
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Development Mode
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run both frontend and backend together:
+```bash
+npm run dev:full
+```
 
-## Deploy on Vercel
+Or run them separately:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Frontend only:
+```bash
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Backend only:
+```bash
+npm run backend
+```
+
+#### Production Mode
+
+1. Build the frontend:
+```bash
+npm run build:full
+```
+
+2. Start both services:
+```bash
+npm run start:full
+```
+
+### Available Scripts
+
+- `npm run dev` - Start Next.js development server
+- `npm run build` - Build Next.js application
+- `npm run start` - Start Next.js production server
+- `npm run backend` - Start backend development server
+- `npm run backend:start` - Start backend production server
+- `npm run dev:full` - Start both frontend and backend in development
+- `npm run build:full` - Build frontend and install backend dependencies
+- `npm run start:full` - Start both frontend and backend in production
+
+### API Endpoints
+
+The backend API is available at `http://localhost:5000/api/`
+
+- Authentication: `/api/auth/*`
+- Users: `/api/users/*`
+- Rooms: `/api/rooms/*`
+- Bookings: `/api/bookings/*`
+- Payments: `/api/payments/*`
+
+### Frontend
+
+The frontend is available at `http://localhost:3000/`
+
+### Features
+
+- User authentication and authorization
+- Room management
+- Booking system
+- Payment processing
+- Dashboard with analytics
+- Responsive design
+- Dark/Light theme support
+
+### Technology Stack
+
+**Frontend:**
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
+- Radix UI components
+- Recharts for data visualization
+
+**Backend:**
+- Express.js
+- MongoDB with Mongoose
+- JWT authentication
+- bcryptjs for password hashing
+- CORS enabled
+- Rate limiting
+
+### Development Notes
+
+- The backend is now integrated into the frontend directory for easier development
+- API routes in Next.js proxy requests to the Express backend
+- Both services can run on different ports during development
+- The frontend automatically proxies API requests to the backend
