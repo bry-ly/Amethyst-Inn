@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -103,9 +104,10 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
   const [bookingType, setBookingType] = useState<'booking' | 'reservation'>('booking');
   const [formData, setFormData] = useState({
     checkInDate: "",
+    checkInTime: "14:00",
     checkOutDate: "",
-    adults: 1,
-    children: 0,
+    checkOutTime: "11:00",
+    guestCount: 1,
     firstName: "",
     lastName: "",
     email: "",
@@ -120,6 +122,54 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [uploadError, setUploadError] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const populateAuthenticatedUser = async () => {
+      try {
+        const headers: Record<string, string> = {};
+        const token =
+          (typeof window !== 'undefined' && localStorage.getItem('token')) ||
+          (typeof window !== 'undefined' && sessionStorage.getItem('token')) ||
+          null;
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers,
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const profile = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          email: prev.email || profile?.email || "",
+          phone: prev.phone || profile?.phone || "",
+        }));
+      } catch (error) {
+        console.error('Failed to fetch authenticated user profile for booking form', error);
+      }
+    };
+
+    populateAuthenticatedUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleInputChange = (field: string, value: string | number | File | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -187,6 +237,16 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
       toast.error("Please select a check-out date");
       return;
     }
+
+    if (!formData.checkInTime) {
+      toast.error("Please select a check-in time");
+      return;
+    }
+
+    if (!formData.checkOutTime) {
+      toast.error("Please select a check-out time");
+      return;
+    }
     
     if (!formData.firstName || !formData.lastName) {
       toast.error("Please fill in your name");
@@ -197,16 +257,23 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
       toast.error("Please provide your email address");
       return;
     }
-    
     if (!formData.phone) {
       toast.error("Please provide your phone number");
       return;
     }
+
+    const guests = Number(formData.guestCount);
+    if (!guests || Number.isNaN(guests) || guests < 1) {
+      toast.error("Please enter at least 1 guest");
+      return;
+    }
+
     
     if (!formData.nationality) {
       toast.error("Please provide your nationality");
       return;
     }
+
     
     if (!formData.purpose) {
       toast.error("Please select the purpose of your visit");
@@ -251,8 +318,10 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
       const formDataToSend = new FormData();
       formDataToSend.append('roomId', selectedRoomId);
       formDataToSend.append('checkInDate', formData.checkInDate);
+      formDataToSend.append('checkInTime', formData.checkInTime);
       formDataToSend.append('checkOutDate', formData.checkOutDate);
-      formDataToSend.append('guestCount', formData.adults.toString());
+      formDataToSend.append('checkOutTime', formData.checkOutTime);
+      formDataToSend.append('guestCount', formData.guestCount.toString());
       formDataToSend.append('totalPrice', totalPrice.toString());
       if (formData.specialRequests) {
         formDataToSend.append('specialRequests', formData.specialRequests);
@@ -337,9 +406,10 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
           // Reset form
           setFormData({
             checkInDate: "",
+            checkInTime: "14:00",
             checkOutDate: "",
-            adults: 1,
-            children: 0,
+            checkOutTime: "11:00",
+            guestCount: 1,
             firstName: "",
             lastName: "",
             email: "",
@@ -380,9 +450,6 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
   const roomPrice = room?.pricePerNight || 150;
   const totalPrice = totalNights * roomPrice;
 
-  const fallbackCapacity = (room?.capacity?.adults ?? 0) + (room?.capacity?.children ?? 0)
-  const derivedCapacity = ((room as any)?.guestCapacity ?? fallbackCapacity)
-  const maxGuests = derivedCapacity || 1
 
   // If initialOpen prop is passed via children usage, allow external open
   // Note: We intentionally allow controlled opening via initialOpen on mount
@@ -433,7 +500,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
               </p>
               <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
-                <span>Up to {maxGuests} guests</span>
+                <span>Guest capacity details available on request</span>
               </div>
             </div>
 
@@ -509,6 +576,20 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="checkInTime">Check-in Time</Label>
+                    <Input
+                      id="checkInTime"
+                      name="checkInTime"
+                      type="time"
+                      autoComplete="off"
+                      value={formData.checkInTime}
+                      onChange={(e) =>
+                        handleInputChange("checkInTime", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="checkOutDate">Check-out Date</Label>
                     <Input
                       id="checkOutDate"
@@ -523,30 +604,44 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
                       required
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="checkOutTime">Check-out Time</Label>
+                    <Input
+                      id="checkOutTime"
+                      name="checkOutTime"
+                      type="time"
+                      autoComplete="off"
+                      value={formData.checkOutTime}
+                      onChange={(e) =>
+                        handleInputChange("checkOutTime", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="guests">Number of Guests</Label>
-                  <Select
-                    name="guests"
-                    value={formData.adults.toString()}
-                    onValueChange={(value) => {
-                      handleInputChange('adults', parseInt(value))
+                  <Label htmlFor="guestCount">Number of Guests</Label>
+                  <Input
+                    id="guestCount"
+                    name="guestCount"
+                    type="number"
+                    min={1}
+                    value={formData.guestCount === 0 ? "" : formData.guestCount}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        handleInputChange("guestCount", 0);
+                        return;
+                      }
+
+                      const parsed = parseInt(raw, 10);
+                      handleInputChange("guestCount", Number.isNaN(parsed) ? 0 : Math.max(1, parsed));
                     }}
-                  >
-                    <SelectTrigger id="guests" aria-label="Number of guests">
-                      <SelectValue placeholder="Select number of guests" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: maxGuests }, (_, i) => (
-                        <SelectItem key={i + 1} value={(i + 1).toString()}>
-                          {i + 1} {i + 1 === 1 ? 'Guest' : 'Guests'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    required
+                  />
                   <p className="text-xs text-muted-foreground">
-                    Maximum capacity: {maxGuests} {maxGuests === 1 ? 'guest' : 'guests'}
+                    Enter the total number of guests staying in this room.
                   </p>
                 </div>
               </div>
@@ -868,9 +963,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
               <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span>
-                  {formData.adults}{" "}
-                  {formData.adults === 1 ? "Guest" : "Guests"}
-                  {formData.children > 0 && ` (${formData.children} ${formData.children === 1 ? 'Child' : 'Children'})`}
+                  {formData.guestCount} {formData.guestCount === 1 ? "Guest" : "Guests"}
                 </span>
               </div>
             </div>
@@ -886,13 +979,14 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
                 {/* Stay Details */}
                 <div className="space-y-3">
                   <h5 className="font-medium text-base">Stay Details<span className="text-red-500 mt-1">*</span></h5>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Check-in:</span>
                       <p className="font-medium">
                         {formData.checkInDate
                           ? new Date(formData.checkInDate).toLocaleDateString()
                           : "Not selected"}
+                        {formData.checkInTime ? ` • ${formData.checkInTime}` : ""}
                       </p>
                     </div>
                     <div>
@@ -901,13 +995,13 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
                         {formData.checkOutDate
                           ? new Date(formData.checkOutDate).toLocaleDateString()
                           : "Not selected"}
+                        {formData.checkOutTime ? ` • ${formData.checkOutTime}` : ""}
                       </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Guests:</span>
                       <p className="font-medium">
-                        {formData.adults} {formData.adults === 1 ? 'Adult' : 'Adults'}
-                        {formData.children > 0 && `, ${formData.children} ${formData.children === 1 ? 'Child' : 'Children'}`}
+                        {formData.guestCount} {formData.guestCount === 1 ? 'Guest' : 'Guests'}
                       </p>
                     </div>
                     <div>

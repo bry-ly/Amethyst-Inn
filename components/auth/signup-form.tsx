@@ -50,8 +50,8 @@ export function SignupForm({
         setLoading(false)
         return
       }
-      if (password.length < 6) {
-        toast.error("Password must be at least 6 characters long")
+      if (password.length < 8) {
+        toast.error("Password must be at least 8 characters long")
         setLoading(false)
         return
       }
@@ -95,7 +95,7 @@ export function SignupForm({
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Amethyst"
+                  placeholder="ex. Amethyst"
                   required
                   autoComplete="name"
                   value={name}
@@ -188,7 +188,7 @@ export function SignupForm({
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
               <Link href="/login" className="underline underline-offset-4">
-                Login
+                Sign In
               </Link>
             </div>
           </form>

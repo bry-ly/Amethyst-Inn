@@ -28,7 +28,7 @@ export default function HeroSection({ user, onBookingClick }: HeroSectionProps) 
         <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight">
           Welcome to Amethyst Inn
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-primary-foreground text-base sm:text-lg">
+        <p className="mx-auto mt-4 max-w-2xl text-gray-900 dark:text-gray-200 text-base sm:text-lg">
           Experience comfort and tranquility in our beautifully appointed
           guest house. Perfect for business travelers, couples, and families
           seeking a memorable stay.

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_BASE:
       process.env.NEXT_PUBLIC_API_BASE ||
-      "https://amethyst-inn-server.vercel.app/",
+      "http://localhost:5000",
   },
   turbopack: {
     resolveExtensions: [".mdx", ".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"],

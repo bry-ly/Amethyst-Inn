@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       return new Response(text, { status: res.status })
     }
   } catch (err) {
-    return NextResponse.json({ error: 'Failed to proxy to backend', detail: String(err) }, { status: 502 })
+    return NextResponse.json({ error: 'Failed to get user profile', detail: String(err) }, { status: 502 })
   }
 }
 

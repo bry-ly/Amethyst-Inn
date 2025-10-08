@@ -28,7 +28,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
-import { useDashboardData } from "@/hooks/use-dashboard-data"
+import type { DashboardData } from "@/hooks/use-dashboard-data"
 
 export const description = "An interactive area chart showing booking and revenue trends"
 
@@ -43,11 +43,10 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartAreaInteractive() {
+export function ChartAreaInteractive({ dashboardData }: { dashboardData?: DashboardData | null }) {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("30d")
   const [chartType, setChartType] = React.useState("bookings")
-  const { data: dashboardData } = useDashboardData()
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {

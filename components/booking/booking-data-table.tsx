@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, XCircle, Eye, Calendar, Users, DollarSign, CreditCard, Mail, User as UserIcon, FileText, ExternalLink } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Calendar, Users, DollarSign, CreditCard, Mail, User as UserIcon, FileText, ExternalLink, Trash2 } from "lucide-react";
 import { AuthTokenManager } from "@/utils/cookies";
 
 export const bookingSchema = z.object({
@@ -120,6 +120,26 @@ function BookingDetailsDialog({
 }) {
   const [isUpdating, setIsUpdating] = React.useState(false);
 
+  const identificationDocument = React.useMemo(() => {
+    const doc = booking?.identificationDocument;
+    if (!doc) return null;
+    if (typeof doc === 'string') {
+      const backendUrl = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
+      const normalizedPath = doc.startsWith('http') ? doc : `${backendUrl}/${doc.replace(/^\//, '')}`;
+      const filename = doc.split('/').pop() ?? 'document';
+      return {
+        _id: doc,
+        filename,
+        originalName: filename,
+        mimetype: undefined,
+        size: undefined,
+        url: normalizedPath,
+        path: doc,
+      };
+    }
+    return doc;
+  }, [booking?.identificationDocument]);
+
   if (!booking) return null;
 
   const handleStatusUpdate = async (newStatus: 'confirmed' | 'cancelled') => {
@@ -161,25 +181,6 @@ function BookingDetailsDialog({
   const checkInDate = new Date(booking.checkInDate);
   const checkOutDate = new Date(booking.checkOutDate);
   const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-  const identificationDocument = React.useMemo(() => {
-    const doc = booking.identificationDocument;
-    if (!doc) return null;
-    if (typeof doc === 'string') {
-      const backendUrl = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
-      const normalizedPath = doc.startsWith('http') ? doc : `${backendUrl}/${doc.replace(/^\//, '')}`;
-      const filename = doc.split('/').pop() ?? 'document';
-      return {
-        _id: doc,
-        filename,
-        originalName: filename,
-        mimetype: undefined,
-        size: undefined,
-        url: normalizedPath,
-        path: doc,
-      };
-    }
-    return doc;
-  }, [booking.identificationDocument]);
 
   const identificationDocumentName = identificationDocument?.originalName ?? identificationDocument?.filename ?? 'Document on file';
   const identificationDocumentSize = typeof identificationDocument?.size === 'number'
@@ -403,7 +404,11 @@ function BookingDetailsDialog({
   );
 }
 
-const createColumns = (onViewDetails: (booking: Booking) => void): ColumnDef<Booking>[] => [
+const createColumns = (
+  onViewDetails: (booking: Booking) => void,
+  onDelete: (booking: Booking) => void,
+  deletingId: string | null
+): ColumnDef<Booking>[] => [
   { id: 'drag', header: () => null, cell: ({ row }) => <DragHandle id={row.original._id} /> },
   {
     id: 'select',
@@ -429,8 +434,8 @@ const createColumns = (onViewDetails: (booking: Booking) => void): ColumnDef<Boo
     header: 'Guest',
     cell: ({ row }) => (
       <div className="w-56">
-        <div className="font-medium">{row.original.guest.name}</div>
-        <div className="text-sm text-muted-foreground">{row.original.guest.email}</div>
+        <div className="font-medium">{row.original.guest?.name ?? 'Unknown guest'}</div>
+        <div className="text-sm text-muted-foreground">{row.original.guest?.email ?? 'No email'}</div>
       </div>
     ),
   },
@@ -458,15 +463,27 @@ const createColumns = (onViewDetails: (booking: Booking) => void): ColumnDef<Boo
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onViewDetails(row.original)}
-        className="gap-2"
-      >
-        <Eye className="h-4 w-4" />
-        View
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onViewDetails(row.original)}
+          className="gap-2"
+        >
+          <Eye className="h-4 w-4" />
+          View
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onDelete(row.original)}
+          disabled={deletingId === row.original._id}
+          className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+        >
+          <Trash2 className="h-4 w-4" />
+          {deletingId === row.original._id ? 'Deleting...' : 'Delete'}
+        </Button>
+      </div>
     ),
     enableSorting: false,
     enableHiding: false,
@@ -511,6 +528,7 @@ function BookingDataTable() {
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const [selectedBooking, setSelectedBooking] = React.useState<Booking | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const handleViewDetails = React.useCallback((booking: Booking) => {
     setSelectedBooking(booking);
@@ -521,7 +539,42 @@ function BookingDataTable() {
     refetch();
   }, [refetch]);
 
-  const columns = React.useMemo(() => createColumns(handleViewDetails), [handleViewDetails]);
+  const handleDeleteBooking = React.useCallback(async (booking: Booking) => {
+    const confirmed = window.confirm(`Delete booking ${booking._id.slice(-6)}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingId(booking._id);
+    try {
+      const token = AuthTokenManager.getToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`/api/bookings/${booking._id}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to delete booking');
+      }
+
+      toast.success('Booking deleted successfully');
+      refetch();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete booking';
+      toast.error(message);
+    } finally {
+      setDeletingId(null);
+    }
+  }, [refetch]);
+
+  const columns = React.useMemo(
+    () => createColumns(handleViewDetails, handleDeleteBooking, deletingId),
+    [handleViewDetails, handleDeleteBooking, deletingId]
+  );
 
   const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}));
   const dataIds = React.useMemo<UniqueIdentifier[]>(() => rows.map(b => b._id).filter(Boolean), [rows]);

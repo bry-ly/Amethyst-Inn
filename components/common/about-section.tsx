@@ -27,10 +27,8 @@ const About: React.FC = () => (
                 </p>
 
                 <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">
-                    Amethyst Inn System streamlines reservations, simplifies billing,
-                    and centralizes operations so you can focus on what matters most —
-                    welcoming your guests. Whether you run a boutique guest house or a
-                    multi-room property, our tools adapt to your workflow.
+                    Amethyst Inn System streamlines booking and reservations, simplifies bookings,
+                    and centralizes operations so you can focus on what matters
                 </p>
 
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">

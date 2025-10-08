@@ -123,6 +123,14 @@ export const userSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+type UserRow = z.infer<typeof userSchema>;
+
+type UserTableMeta = {
+  updateRow?: (id: string, updates: Partial<UserRow>) => void;
+  removeRow?: (id: string) => void;
+  reload?: () => void;
+};
+
 // Create a separate component for the drag handle
 function DragHandle({ id }: { id: string }) {
   const { attributes, listeners } = useSortable({
@@ -143,7 +151,7 @@ function DragHandle({ id }: { id: string }) {
   );
 }
 
-const columns: ColumnDef<z.infer<typeof userSchema>>[] = [
+const columns: ColumnDef<UserRow>[] = [
   {
     id: "drag",
     header: () => null,
@@ -226,14 +234,14 @@ const columns: ColumnDef<z.infer<typeof userSchema>>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <UserActions user={row.original} />,
+    cell: ({ row, table }) => <UserActions user={row.original} table={table} />,
   },
 ];
 
 // User Actions Component
-const UserActions = React.memo(function UserActions({ user }: { user: z.infer<typeof userSchema> }) {
-  const [users, setUsers] = React.useState<z.infer<typeof userSchema>[]>([]);
+const UserActions = React.memo(function UserActions({ user, table }: { user: UserRow; table: import("@tanstack/react-table").Table<UserRow> }) {
   const [loading, setLoading] = React.useState(false);
+  const meta = table.options.meta as UserTableMeta | undefined;
   
   const handleEdit = async (updatedUser: Partial<z.infer<typeof userSchema>>) => {
     setLoading(true);
@@ -256,7 +264,8 @@ const UserActions = React.memo(function UserActions({ user }: { user: z.infer<ty
       }
       
       const updated = await res.json();
-      setUsers((prev) => prev.map(u => u._id === user._id ? { ...u, ...updated } : u));
+      meta?.updateRow?.(user._id, updated);
+      meta?.reload?.();
       toast.success('User updated');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update user');
@@ -281,7 +290,8 @@ const UserActions = React.memo(function UserActions({ user }: { user: z.infer<ty
         throw new Error(`Failed to delete user: ${res.status} ${text}`);
       }
       
-      setUsers((prev) => prev.filter(u => u._id !== user._id));
+      meta?.removeRow?.(user._id);
+      meta?.reload?.();
       toast.success(`User ${user.name} deleted.`);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to delete user.');
@@ -472,8 +482,10 @@ const DraggableRow = React.memo(function DraggableRow({ row }: { row: Row<z.infe
 
 export function DataTable({
   data: initialData,
+  onReload,
 }: {
   data: z.infer<typeof userSchema>[];
+  onReload?: () => void;
 }) {
   // Ensure initialData is always an array
   const safeInitialData = Array.isArray(initialData) ? initialData : [];
@@ -495,6 +507,13 @@ export function DataTable({
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
   );
+
+  React.useEffect(() => {
+    const refreshedData = Array.isArray(initialData) ? initialData : [];
+    setData(refreshedData);
+    setRowSelection({});
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [initialData]);
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
     () => {
@@ -529,6 +548,23 @@ export function DataTable({
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: true,
     pageCount: Math.ceil((Array.isArray(data) ? data.length : 0) / pagination.pageSize),
+    meta: {
+      updateRow: (id: string, updates: Partial<UserRow>) => {
+        setData((current) =>
+          Array.isArray(current)
+            ? current.map((row) => (row._id === id ? { ...row, ...updates } : row))
+            : current
+        );
+      },
+      removeRow: (id: string) => {
+        setData((current) =>
+          Array.isArray(current) ? current.filter((row) => row._id !== id) : current
+        );
+      },
+      reload: () => {
+        onReload?.();
+      },
+    } satisfies UserTableMeta,
   });
 
   function handleDragEnd(event: DragEndEvent) {

@@ -12,11 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { useDashboardData } from "@/hooks/use-dashboard-data"
+import type { DashboardData } from "@/hooks/use-dashboard-data"
 
-export function SectionCards() {
-  const { data: dashboardData } = useDashboardData()
+type SectionCardsProps = {
+  dashboardData?: DashboardData | null
+}
 
+export function SectionCards({ dashboardData }: SectionCardsProps) {
   if (!dashboardData) {
     return null
   }

@@ -5,7 +5,7 @@ import { useApiData } from '@/hooks/use-api-data';
 import { TableLoader } from '@/components/common/loading-spinner';
 
 export function UsersPageWrapper() {
-  const { data, loading, error } = useApiData('/api/users', {
+  const { data, loading, error, refetch } = useApiData('/api/users', {
     staleTime: 60_000,
     cacheTime: 5 * 60_000,
     refetchOnWindowFocus: false,
@@ -31,5 +31,5 @@ export function UsersPageWrapper() {
 
   const users = Array.isArray(data) ? data : [];
 
-  return <DataTable data={users} />;
+  return <DataTable data={users} onReload={refetch} />;
 }
