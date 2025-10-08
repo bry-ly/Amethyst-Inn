@@ -5,10 +5,7 @@ This is a full-stack hotel management system built with Next.js (frontend) and E
 ## Project Structure
 
 ```
-frontend/
-├── app/                    # Next.js App Router pages and API routes
-├── components/             # React components
-├── backend/               # Express.js backend server
+backend/                  # Express.js backend server
 │   ├── config/           # Database configuration
 │   ├── controllers/      # Route controllers
 │   ├── middleware/       # Express middleware
@@ -16,6 +13,9 @@ frontend/
 │   ├── routes/          # API routes
 │   ├── utils/           # Utility functions
 │   └── server.js        # Main server file
+frontend/
+├── app/                    # Next.js App Router pages and API routes
+├── components/             # React components
 ├── lib/                  # Utility libraries
 ├── hooks/               # Custom React hooks
 └── public/              # Static assets
