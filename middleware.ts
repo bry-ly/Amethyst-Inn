@@ -27,6 +27,7 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get('auth_token')?.value
   const isDashboard = pathname.startsWith('/dashboard')
   const isAuthPage = pathname === '/login' || pathname === '/signup'
+  const forceAuthPage = req.nextUrl.searchParams.get('force') === '1'
 
   if (isDashboard) {
     if (!token) {
@@ -49,7 +50,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  if (isAuthPage && token) {
+  if (isAuthPage && token && !forceAuthPage) {
     const role = await fetchUserRole(token)
     const url = req.nextUrl.clone()
     url.pathname = role === 'admin' ? '/dashboard' : '/'

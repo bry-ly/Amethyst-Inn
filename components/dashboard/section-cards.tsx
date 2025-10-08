@@ -40,19 +40,25 @@ export function SectionCards({ dashboardData }: SectionCardsProps) {
             <span className="inline-flex items-center gap-1"><IconCurrencyPeso className="size-5" />{metrics.totalRevenue.toLocaleString()}</span>
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            <Badge variant="outline" className="tabular-nums">
               {revenueTrend === 'up' ? <IconTrendingUp /> : <IconTrendingDown />}
-              <span className="inline-flex items-center gap-1"><IconCurrencyPeso className="size-4" />{metrics.monthlyRevenue.toLocaleString()}</span>
+              <span className="inline-flex items-baseline gap-1 tabular-nums leading-none whitespace-nowrap">
+                <IconCurrencyPeso className="size-4 translate-y-[1px]" />
+                {metrics.monthlyRevenue.toLocaleString()}
+              </span>
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             {revenueTrend === 'up' ? 'Revenue growing' : 'Revenue stable'} 
-            {revenueTrend === 'up' ? <IconTrendingUp className="size-4" /> : <IconCurrencyPeso className="size-4" />}
+            {revenueTrend === 'up' ? <IconTrendingUp className="size-4" /> : <IconCurrencyPeso className="size-4 " />}
           </div>
           <div className="text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><IconCurrencyPeso className="size-4" />{metrics.monthlyRevenue.toLocaleString()}</span> this month
+            <span className="inline-flex items-baseline gap-1 tabular-nums leading-none whitespace-nowrap">
+              <IconCurrencyPeso className="size-4 translate-y-[1px]" />
+              {metrics.monthlyRevenue.toLocaleString()}
+            </span>{' '}this month
           </div>
         </CardFooter>
       </Card>

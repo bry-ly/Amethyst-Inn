@@ -141,6 +141,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
         const response = await fetch('/api/auth/me', {
           method: 'GET',
           headers,
+          credentials: 'same-origin',
           cache: 'no-store',
         });
 
@@ -351,6 +352,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers,
+        credentials: 'same-origin',
         body: formDataToSend,
       });
 
@@ -366,6 +368,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
             const paymentResponse = await fetch("/api/payments/create-payment-intent", {
               method: "POST",
               headers,
+              credentials: 'same-origin',
               body: JSON.stringify({ bookingId: createdBookingId }),
             });
             

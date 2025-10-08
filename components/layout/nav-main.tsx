@@ -38,7 +38,7 @@ export function NavMain({
               variant="outline"
             >
               <IconMail />
-              <span className="sr-only">Inbox</span>
+              <span className="sr-only">Room</span>
             </Button>
           </SidebarMenuItem>
         </SidebarMenu>

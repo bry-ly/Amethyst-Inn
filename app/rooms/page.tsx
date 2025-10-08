@@ -24,17 +24,12 @@ export default function RoomsPage() {
   async function checkAuthAndFetchRooms() {
     try {
       const token = AuthTokenManager.getToken()
-      
-      if (!token) {
-        router.push("/login?next=/rooms")
-        return
-      }
-
-      // Check if user is admin
-      const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
-      const authRes = await fetch(`${backend}/api/auth/me`, {
-        headers: { authorization: `Bearer ${token}` },
-        cache: "no-store"
+      // Check if user is admin/staff using internal API so cookie can be used
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+      const authRes = await fetch('/api/auth/me', {
+        cache: 'no-store',
+        headers,
+        credentials: 'same-origin',
       })
 
       if (!authRes.ok) {
@@ -52,8 +47,8 @@ export default function RoomsPage() {
 
       setIsAuthorized(true)
 
-      // Fetch rooms
-      await fetchRooms(token)
+  // Fetch rooms
+  await fetchRooms(token ?? undefined)
     } catch (error) {
       console.error("Auth/fetch error:", error)
       router.push("/login?next=/rooms")

@@ -144,11 +144,22 @@ export default function HeaderSection({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link
-                        href="/profile"
+                        href={user.role === 'admin' || user.role === 'staff' ? '/dashboard' : '/profile'}
                         className="flex items-center gap-2"
                       >
                         <IconUserFilled className="h-4 w-4" />
-                        Dashboard
+                        {user.role === 'admin' || user.role === 'staff' ? 'Dashboard' : 'Profile'}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/login?force=1"
+                        className="flex items-center gap-2"
+                        onClick={onCloseMobileMenu}
+                      >
+                        <IconUserFilled className="h-4 w-4" />
+                        Switch account
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -163,7 +174,7 @@ export default function HeaderSection({
                 </DropdownMenu>
               ) : (
                 <>
-                  <Link href="/login">
+                  <Link href="/login?force=1">
                     <Button variant="outline" size="sm">
                       Login
                     </Button>
@@ -269,7 +280,7 @@ export default function HeaderSection({
                         </div>
                       </div>
                       <Link
-                        href="/dashboard"
+                        href={user.role === 'admin' || user.role === 'staff' ? '/dashboard' : '/profile'}
                         className="block"
                         onClick={onCloseMobileMenu}
                       >
@@ -279,7 +290,7 @@ export default function HeaderSection({
                           className="w-full flex items-center gap-2"
                         >
                           <IconUserFilled className="h-4 w-4" />
-                          Dashboard
+                          {user.role === 'admin' || user.role === 'staff' ? 'Dashboard' : 'Profile'}
                         </Button>
                       </Link>
                       <Button
@@ -293,7 +304,7 @@ export default function HeaderSection({
                       </Button>
                     </div>
                   ) : (
-                    <Link href="/login" className="block">
+                    <Link href="/login?force=1" className="block">
                       <Button variant="outline" size="sm" className="w-full">
                         Login
                       </Button>
@@ -322,6 +333,22 @@ export default function HeaderSection({
                 >
                   Book Now
                 </Button>
+              )}
+              {isClient && user && (
+                <Link
+                  href="/login?force=1"
+                  className="block"
+                  onClick={onCloseMobileMenu}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full flex items-center gap-2"
+                  >
+                    <IconUserFilled className="h-4 w-4" />
+                    Switch account
+                  </Button>
+                </Link>
               )}
             </div>
           </nav>

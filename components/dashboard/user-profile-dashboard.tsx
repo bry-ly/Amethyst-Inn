@@ -489,6 +489,7 @@ export function UserProfileDashboard({
           const res = await fetch("/api/auth/me", {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             cache: "no-store",
+            credentials: 'same-origin',
           });
           if (res.ok) {
             setUser(await res.json());
@@ -523,6 +524,7 @@ export function UserProfileDashboard({
       const res = await fetch(`/api/bookings`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
+        credentials: 'same-origin',
       });
       
       console.log("Bookings fetch response status:", res.status);

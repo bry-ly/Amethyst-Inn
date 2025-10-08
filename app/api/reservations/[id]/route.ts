@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 function getBackendBase() {
   return (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
@@ -10,9 +11,11 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   const target = `${backend}/api/reservations/${id}`
 
   try {
-    const auth = request.headers.get('authorization') || undefined
-    const headers: Record<string, string> = {}
-    if (auth) headers['authorization'] = auth
+  const auth = request.headers.get('authorization') || undefined
+  const cookieToken = (await cookies()).get('auth_token')?.value
+  const headers: Record<string, string> = {}
+  if (auth) headers['authorization'] = auth
+  else if (cookieToken) headers['authorization'] = `Bearer ${cookieToken}`
 
     const res = await fetch(target, { headers })
     const text = await res.text()
@@ -33,9 +36,11 @@ export async function DELETE(request: Request, ctx: { params: Promise<{ id: stri
   const target = `${backend}/api/reservations/${id}`
 
   try {
-    const auth = request.headers.get('authorization') || undefined
-    const headers: Record<string, string> = {}
-    if (auth) headers['authorization'] = auth
+  const auth = request.headers.get('authorization') || undefined
+  const cookieToken = (await cookies()).get('auth_token')?.value
+  const headers: Record<string, string> = {}
+  if (auth) headers['authorization'] = auth
+  else if (cookieToken) headers['authorization'] = `Bearer ${cookieToken}`
 
     const res = await fetch(target, { method: 'DELETE', headers })
     const text = await res.text()

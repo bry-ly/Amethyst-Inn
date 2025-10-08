@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 interface RoomSummary {
   status?: string
@@ -54,10 +55,10 @@ export async function GET(request: Request) {
 
   try {
     const authHeader = request.headers.get('authorization') || undefined
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const commonHeaders: Record<string, string> = {}
-    if (authHeader) {
-      commonHeaders['authorization'] = authHeader
-    }
+    if (authHeader) commonHeaders['authorization'] = authHeader
+    else if (cookieToken) commonHeaders['authorization'] = `Bearer ${cookieToken}`
 
     const response = await fetch(`${baseUrl}/api/dashboard/summary`, {
       headers: commonHeaders,

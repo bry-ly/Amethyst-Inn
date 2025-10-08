@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 function getBackendBase() {
   return (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
@@ -10,8 +11,10 @@ export async function GET(request: Request) {
 
   try {
     const auth = request.headers.get('authorization') || undefined
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const headers: Record<string, string> = {}
     if (auth) headers['authorization'] = auth
+    else if (cookieToken) headers['authorization'] = `Bearer ${cookieToken}`
 
     const res = await fetch(target, { headers })
     const text = await res.text()
@@ -34,9 +37,11 @@ export async function POST(request: Request) {
     // Get the FormData from the request
     const formData = await request.formData()
     const auth = request.headers.get('authorization') || undefined
+    const cookieToken = (await cookies()).get('auth_token')?.value
     
     const headers: Record<string, string> = {}
     if (auth) headers['authorization'] = auth
+    else if (cookieToken) headers['authorization'] = `Bearer ${cookieToken}`
     // Note: Don't set Content-Type for FormData, browser will set it with boundary
 
     const res = await fetch(target, { 

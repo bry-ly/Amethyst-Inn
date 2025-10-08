@@ -147,7 +147,7 @@ export function useApiData<T>(
           // ignore localStorage errors
         }
 
-        const response = await fetch(url, { headers });
+  const response = await fetch(url, { headers, credentials: 'same-origin' });
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -402,7 +402,7 @@ export function prefetchData(url: string) {
       // ignore localStorage errors
     }
 
-    fetch(url, { headers })
+    fetch(url, { headers, credentials: 'same-origin' })
       .then(response => response.json())
       .then(data => {
         cache.set(cacheKey, {

@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookingSheet } from "@/components/booking/booking-sheet";
-import { AuthTokenManager } from "@/utils/cookies";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -105,6 +104,22 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showBookingSheet, setShowBookingSheet] = useState(false);
 
+  // Helper to check if user is authenticated using cookie-aware API
+  const checkAuthenticated = React.useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!res.ok) return false;
+      const data = await res.json().catch(() => null);
+      return Boolean(data && (data._id || data.id || data.email));
+    } catch (_e) {
+      return false;
+    }
+  }, []);
+
   const amenityIcons: { [key: string]: React.ReactNode } = {
     WiFi: <Wifi className="h-4 w-4" />,
     "Coffee Machine": <Coffee className="h-4 w-4" />,
@@ -169,15 +184,18 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
   // open booking sheet if openBookingId prop matches this room id
   React.useEffect(() => {
     if (openBookingId && openBookingId === room._id) {
-      if (AuthTokenManager.hasToken()) {
-        setShowBookingSheet(true);
-      } else {
-        routerRef.current.push(
-          `/login?next=${encodeURIComponent(`/rooms?book=${room._id}`)}`
-        );
-      }
+      (async () => {
+        const ok = await checkAuthenticated();
+        if (ok) {
+          setShowBookingSheet(true);
+        } else {
+          routerRef.current.push(
+            `/login?next=${encodeURIComponent(`/rooms?book=${room._id}`)}`
+          );
+        }
+      })();
     }
-  }, [openBookingId, room._id]);
+  }, [openBookingId, room._id, checkAuthenticated]);
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -429,9 +447,10 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
             {room.isAvailable ? (
               <Button
                 className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium"
-                onClick={() => {
-                  // Always try to open booking sheet when button is clicked
-                  if (AuthTokenManager.hasToken()) {
+                onClick={async () => {
+                  // Check session via cookie-aware endpoint, then open sheet or redirect to login
+                  const ok = await checkAuthenticated();
+                  if (ok) {
                     setShowBookingSheet(true);
                   } else {
                     try {
@@ -441,9 +460,7 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                         })
                       );
                     } catch (e) {
-                      const next = encodeURIComponent(
-                        `/rooms?book=${room._id}`
-                      );
+                      const next = encodeURIComponent(`/rooms?book=${room._id}`);
                       router.push(`/login?next=${next}`);
                     }
                   }

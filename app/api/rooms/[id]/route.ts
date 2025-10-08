@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
 
@@ -9,12 +10,16 @@ export async function GET(
   const { id } = await context.params
   const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
   try {
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
       cache: 'no-store',
       headers: {
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!,
         }),
+        ...(!request.headers.get('authorization') && cookieToken ? {
+          'Authorization': `Bearer ${cookieToken}`,
+        } : {}),
       },
     })
     const data = await res.json()
@@ -40,6 +45,7 @@ export async function PUT(
 
   try {
     const body = await request.json()
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
       method: 'PUT',
       headers: {
@@ -47,6 +53,9 @@ export async function PUT(
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!,
         }),
+        ...(!request.headers.get('authorization') && cookieToken ? {
+          'Authorization': `Bearer ${cookieToken}`,
+        } : {}),
       },
       body: JSON.stringify(body),
     })
@@ -73,12 +82,16 @@ export async function DELETE(
   const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
 
   try {
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
       method: 'DELETE',
       headers: {
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!,
         }),
+        ...(!request.headers.get('authorization') && cookieToken ? {
+          'Authorization': `Bearer ${cookieToken}`,
+        } : {}),
       },
     })
 

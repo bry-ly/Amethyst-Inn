@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
 
@@ -11,12 +12,16 @@ export async function GET(request: NextRequest) {
   const target = `${backend.replace(/\/$/, '')}/api/rooms${queryString ? `?${queryString}` : ''}`
 
   try {
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
       cache: 'no-store',
       headers: {
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!,
         }),
+        ...(!request.headers.get('authorization') && cookieToken ? {
+          'Authorization': `Bearer ${cookieToken}`,
+        } : {}),
       },
     })
     const data = await res.json()
@@ -75,6 +80,7 @@ export async function POST(request: NextRequest) {
     console.log('Proxying POST request to:', target)
     console.log('Request body:', body)
     
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
       method: 'POST',
       headers: {
@@ -82,7 +88,10 @@ export async function POST(request: NextRequest) {
         // Add authorization header if available
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!
-        })
+        }),
+        ...(!request.headers.get('authorization') && cookieToken ? {
+          'Authorization': `Bearer ${cookieToken}`,
+        } : {}),
       },
       body: JSON.stringify(body)
     })

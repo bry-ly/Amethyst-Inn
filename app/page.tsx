@@ -68,24 +68,27 @@ export default function Home() {
         const hasConsent = CookieConsent.hasConsent();
         setCookieConsent(hasConsent);
         
-        // Get token using the new utility
+        // Try to get a token (may be in localStorage). Even if missing, still
+        // call /api/auth/me so the server can authenticate via httpOnly cookie.
         const token = AuthTokenManager.getToken();
-        
-        if (!token) {
-          setIsLoading(false);
-          return;
-        }
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const res = await fetch('/api/auth/me', { 
+        const res = await fetch('/api/auth/me', {
           cache: 'no-store',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers,
+          // credentials default to 'same-origin' for same-origin requests, which
+          // sends cookies; specifying it here for clarity/safety.
+          credentials: 'same-origin',
         });
         
         if (res.ok) {
           const userData = await res.json();
           setUser(userData);
+
+          // If we authenticated via cookie and no token in storage, keep the
+          // client in sync by writing the token from response if provided in a
+          // header in the future. For now, just leave storage empty to rely on
+          // cookie-based auth.
         } else {
           // Token is invalid, remove it
           AuthTokenManager.clearToken();

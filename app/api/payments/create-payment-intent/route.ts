@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
 
@@ -8,6 +9,7 @@ export async function POST(request: NextRequest) {
 
     const target = `${backend.replace(/\/$/, '')}/api/payments/create-payment-intent`
 
+    const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
       method: 'POST',
       headers: {
@@ -15,6 +17,9 @@ export async function POST(request: NextRequest) {
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!,
         }),
+        ...(!request.headers.get('authorization') && cookieToken ? {
+          'Authorization': `Bearer ${cookieToken}`,
+        } : {}),
       },
       body: JSON.stringify(body),
     })

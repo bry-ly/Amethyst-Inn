@@ -23,16 +23,12 @@ export default function DashboardPage() {
   async function checkAuth() {
     try {
       const token = AuthTokenManager.getToken()
-      
-      if (!token) {
-        router.push("/login?next=/dashboard")
-        return
-      }
-
-      const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
-      const res = await fetch(`${backend}/api/auth/me`, {
-        headers: { authorization: `Bearer ${token}` },
-        cache: "no-store",
+      // Call internal API to leverage httpOnly cookie on the server
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch('/api/auth/me', {
+        cache: 'no-store',
+        headers,
+        credentials: 'same-origin',
       })
 
       if (!res.ok) {
