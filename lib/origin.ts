@@ -1,4 +1,25 @@
-import { headers } from 'next/headers';
+// NOTE: Do NOT statically import 'next/headers' here because this file is used by
+// both server and client code (dynamic imports in client components). A static
+// import forces Next.js to treat the module as server-only and breaks the client build.
+// We instead lazy-load headers() only when we detect a server runtime.
+// (Vercel build error referenced: "You're importing a component that needs 'next/headers'")
+
+type HeaderGetter = () => Headers;
+let serverHeaders: HeaderGetter | null = null;
+function tryLoadHeaders(): HeaderGetter | null {
+  if (serverHeaders !== null) return serverHeaders; // cached attempt
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('next/headers') as { headers: HeaderGetter };
+    if (typeof mod.headers === 'function') {
+      serverHeaders = mod.headers;
+      return serverHeaders;
+    }
+  } catch {
+    serverHeaders = null;
+  }
+  return serverHeaders;
+}
 
 /**
  * Returns the fully-qualified site origin for server components / route handlers.
@@ -11,12 +32,19 @@ export function getSiteOrigin(): string {
     const normalized = envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
     return normalized.replace(/\/$/, '');
   }
-  const h = headers();
-  // Some type defs may incorrectly mark headers() as possibly async; ensure usable object.
-  const xfHost = (h as any).get?.('x-forwarded-host') || (h as any).get?.('host');
-  const host = xfHost || 'localhost:3000';
-  const proto = (h as any).get?.('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https');
-  return `${proto}://${host}`.replace(/\/$/, '');
+  const headersFn = tryLoadHeaders();
+  if (headersFn) {
+    try {
+      const h = headersFn();
+      const xfHost = h.get('x-forwarded-host') || h.get('host');
+      const host = xfHost || 'localhost:3000';
+      const proto = h.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https');
+      return `${proto}://${host}`.replace(/\/$/, '');
+    } catch {
+      // fall through to default
+    }
+  }
+  return 'http://localhost:3000';
 }
 
 /** Backend base (no trailing /api). */
@@ -35,6 +63,15 @@ export function backendApi(path: string): string {
   const base = getBackendBase();
   const clean = path.startsWith('/') ? path.slice(1) : path;
   return `${base}/api/${clean}`.replace(/\/+$/, '');
+}
+
+// Warn in production if backend base looks like localhost (misconfiguration safeguard)
+if (process.env.NODE_ENV === 'production') {
+  const bb = getBackendBase();
+  if (/^https?:\/\/localhost:?\d*/i.test(bb)) {
+    // eslint-disable-next-line no-console
+    console.warn('[origin] WARNING: backend base is localhost in production build:', bb);
+  }
 }
 
 /** Fetch JSON with graceful text fallback; never throws, returns envelope. */
