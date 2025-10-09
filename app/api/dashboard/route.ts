@@ -51,37 +51,34 @@ const isBookingArray = (value: unknown): value is BookingSummary[] => Array.isAr
 const isUserArray = (value: unknown): value is UserSummary[] => Array.isArray(value)
 
 export async function GET(request: Request) {
-  const baseUrl = backendApi('').replace(/\/$/, '')
+  // Build the correct endpoint once (avoid former /api/api duplication)
+  const endpoint = backendApi('dashboard/summary')
 
   try {
     const authHeader = request.headers.get('authorization') || undefined
     const cookieToken = (await cookies()).get('auth_token')?.value
-    const commonHeaders: Record<string, string> = {}
-    if (authHeader) commonHeaders['authorization'] = authHeader
-    else if (cookieToken) commonHeaders['authorization'] = `Bearer ${cookieToken}`
+    const headers: Record<string, string> = {}
+    if (authHeader) headers['authorization'] = authHeader
+    else if (cookieToken) headers['authorization'] = `Bearer ${cookieToken}`
 
-    const response = await fetch(`${baseUrl}/api/dashboard/summary`, {
-      headers: commonHeaders,
-      cache: 'no-store',
-    })
+    const res = await fetch(endpoint, { headers, cache: 'no-store' })
 
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(text || `Dashboard summary failed: ${response.status}`)
+    if (res.status === 401 || res.status === 403) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const summary = await response.json()
-
-    if (!summary?.success) {
-      throw new Error(summary?.message || "Dashboard summary error")
+    if (!res.ok) {
+      const text = await res.text()
+      return NextResponse.json({ error: 'Upstream dashboard fetch failed', detail: text || res.statusText }, { status: 502 })
     }
 
-    return NextResponse.json(summary.data)
+    const json = await res.json()
+    if (!json?.success || !json.data) {
+      return NextResponse.json({ error: 'Malformed dashboard response', detail: json?.message || null }, { status: 502 })
+    }
+    return NextResponse.json(json.data, { status: 200 })
   } catch (err) {
     console.error('Dashboard API error:', err)
-    return NextResponse.json(
-      { error: 'Failed to fetch dashboard data', detail: String(err) },
-      { status: 502 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch dashboard data', detail: String(err) }, { status: 502 })
   }
 }
