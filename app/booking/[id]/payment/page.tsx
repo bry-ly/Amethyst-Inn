@@ -24,10 +24,12 @@ export default function PaymentPage() {
     const fetchBookingAndCreateIntent = async () => {
       try {
         const token = localStorage.getItem("token");
-        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        // Use centralized backend origin (avoids deprecated NEXT_PUBLIC_API_URL variable)
+        const { backendApi } = await import('@/lib/origin');
+        const bookingUrl = backendApi(`bookings/${bookingId}`);
 
-        // Fetch booking details
-        const bookingRes = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
+        // Fetch booking details via backendApi helper
+        const bookingRes = await fetch(bookingUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -36,7 +38,8 @@ export default function PaymentPage() {
         setBooking(bookingData);
 
         // Create payment intent
-        const paymentRes = await fetch(`${API_URL}/api/payments/create-payment-intent`, {
+        const paymentIntentUrl = backendApi('payments/create-payment-intent');
+        const paymentRes = await fetch(paymentIntentUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
