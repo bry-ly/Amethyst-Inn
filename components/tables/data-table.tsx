@@ -151,97 +151,106 @@ function DragHandle({ id }: { id: string }) {
   );
 }
 
-const columns: ColumnDef<UserRow>[] = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original._id} />,
-  },
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-    cell: ({ row }) => {
-      return <UserCellViewer user={row.original} />;
+function buildColumns(canManage: boolean): ColumnDef<UserRow>[] {
+  const cols: ColumnDef<UserRow>[] = [
+    {
+      id: "drag",
+      header: () => null,
+      cell: ({ row }) => <DragHandle id={row.original._id} />,
     },
-    enableHiding: false,
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-    cell: ({ row }) => (
-      <div className="w-64">
-        <span className="text-sm text-muted-foreground">{row.original.email}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "role",
-    header: "Role",
-    cell: ({ row }) => (
-      <Badge 
-        variant="outline" 
-        className={
-          row.original.role === "admin"
-            ? "border-red-300 text-red-700  bg-red-50 dark:bg-red-950/20"
-            : row.original.role === "staff"
-            ? "border-blue-300 text-blue-700 bg-blue-50 dark:bg-blue-950/20"
-            : "border-gray-300 text-gray-700 bg-gray-50 dark:bg-gray-950/20"
-        }
-      >
-        {row.original.role}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Created",
-    cell: ({ row }) => (
-      <div className="w-32">
-        <span className="text-sm text-muted-foreground">
-          {row.original.createdAt 
-            ? new Date(row.original.createdAt).toLocaleDateString('en-US')
-            : "N/A"
+    {
+      id: "select",
+      header: ({ table }) => (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && "indeterminate")
+            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => {
+        return <UserCellViewer user={row.original} />;
+      },
+      enableHiding: false,
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <div className="w-64">
+          <span className="text-sm text-muted-foreground">{row.original.email}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => (
+        <Badge 
+          variant="outline" 
+          className={
+            row.original.role === "admin"
+              ? "border-red-300 text-red-700  bg-red-50 dark:bg-red-950/20"
+              : row.original.role === "staff"
+              ? "border-blue-300 text-blue-700 bg-blue-50 dark:bg-blue-950/20"
+              : "border-gray-300 text-gray-700 bg-gray-50 dark:bg-gray-950/20"
           }
-        </span>
-      </div>
-    ),
-  },
-  {
-    id: "actions",
-    cell: ({ row, table }) => <UserActions user={row.original} table={table} />,
-  },
-];
+        >
+          {row.original.role}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Created",
+      cell: ({ row }) => (
+        <div className="w-32">
+          <span className="text-sm text-muted-foreground">
+            {row.original.createdAt 
+              ? new Date(row.original.createdAt).toLocaleDateString('en-US')
+              : "N/A"
+            }
+          </span>
+        </div>
+      ),
+    },
+  ];
+  
+  if (canManage) {
+    cols.push({
+      id: "actions",
+      cell: ({ row, table }) => <UserActions user={row.original} table={table} canManage={canManage} />,
+    });
+  }
+  
+  return cols;
+}
 
 // User Actions Component
-const UserActions = React.memo(function UserActions({ user, table }: { user: UserRow; table: import("@tanstack/react-table").Table<UserRow> }) {
+const UserActions = React.memo(function UserActions({ user, table, canManage }: { user: UserRow; table: import("@tanstack/react-table").Table<UserRow>; canManage?: boolean }) {
   const [loading, setLoading] = React.useState(false);
   const meta = table.options.meta as UserTableMeta | undefined;
+  
+  if (!canManage) return null;
   
   const handleEdit = async (updatedUser: Partial<z.infer<typeof userSchema>>) => {
     setLoading(true);
@@ -483,9 +492,11 @@ const DraggableRow = React.memo(function DraggableRow({ row }: { row: Row<z.infe
 export function DataTable({
   data: initialData,
   onReload,
+  canManage = false,
 }: {
   data: z.infer<typeof userSchema>[];
   onReload?: () => void;
+  canManage?: boolean;
 }) {
   // Ensure initialData is always an array
   const safeInitialData = Array.isArray(initialData) ? initialData : [];
@@ -525,7 +536,7 @@ export function DataTable({
 
   const table = useReactTable({
     data: Array.isArray(data) ? data : [],
-    columns,
+    columns: React.useMemo(() => buildColumns(canManage), [canManage]),
     state: {
       sorting,
       columnVisibility,
@@ -698,7 +709,7 @@ export function DataTable({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length}
+                      colSpan={table.getAllColumns().length}
                       className="h-24 text-center"
                     >
                       No results.
@@ -839,7 +850,7 @@ export function DataTable({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length}
+                      colSpan={table.getAllColumns().length}
                       className="h-24 text-center"
                     >
                       No admin users found.
@@ -892,7 +903,7 @@ export function DataTable({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length}
+                      colSpan={table.getAllColumns().length}
                       className="h-24 text-center"
                     >
                       No staff users found.
@@ -948,7 +959,7 @@ export function DataTable({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length}
+                      colSpan={table.getAllColumns().length}
                       className="h-24 text-center"
                     >
                       No guest users found.

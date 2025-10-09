@@ -18,7 +18,7 @@ async function fetchUserRole(token: string): Promise<string | null> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (pathname === '/dashbord') {
+  if (pathname === '/dashboard') {
     const url = req.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
@@ -26,8 +26,31 @@ export async function middleware(req: NextRequest) {
 
   const token = req.cookies.get('auth_token')?.value
   const isDashboard = pathname.startsWith('/dashboard')
+  const isAdminRoute = pathname.startsWith('/admin')
   const isAuthPage = pathname === '/login' || pathname === '/signup'
   const forceAuthPage = req.nextUrl.searchParams.get('force') === '1'
+
+  // Protect /admin/* routes (including /admin/users)
+  if (isAdminRoute) {
+    if (!token) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('next', pathname)
+      const res = NextResponse.redirect(url)
+      res.headers.set('Cache-Control', 'no-store')
+      res.headers.set('Pragma', 'no-cache')
+      return res
+    }
+    const role = await fetchUserRole(token)
+    if (role !== 'admin') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/dashboard'
+      const res = NextResponse.redirect(url)
+      res.headers.set('Cache-Control', 'no-store')
+      res.headers.set('Pragma', 'no-cache')
+      return res
+    }
+  }
 
   if (isDashboard) {
     if (!token) {
