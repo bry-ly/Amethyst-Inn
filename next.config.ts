@@ -4,8 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   env: {
     NEXT_PUBLIC_API_BASE:
-      process.env.NEXT_PUBLIC_API_BASE ||
-      "http://localhost:5000",
+       process.env.NEXT_PUBLIC_API_BASE ||
+       "https://amethyst-inn-server.vercel.app",
+    NEXT_PRIVATE_API_BASE:
+      process.env.NEXT_PRIVATE_API_BASE || "https://amethyst-inn-server.vercel.app/api",
   },
   turbopack: {
     resolveExtensions: [".mdx", ".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"],
@@ -24,6 +26,12 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+       {
+         protocol: "https",
+         hostname: "res.cloudinary.com",
+         port: "",
+         pathname: "/**",
+       },
       {
         protocol: "https",
         hostname: "picsum.photos",
@@ -67,14 +75,17 @@ const nextConfig: NextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://localhost:5000/api/:path*",
-      },
-    ];
-  },
+   async rewrites() {
+     if (process.env.NODE_ENV !== "development") {
+       return [];
+     }
+     return [
+       {
+         source: "/api/:path*",
+         destination: "http://localhost:5000/api/:path*",
+       },
+     ];
+   },
 };
 
 export default nextConfig;

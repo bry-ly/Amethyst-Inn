@@ -559,7 +559,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
               <div className="space-y-4">
                 <h4 className="font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Stay Details
+                  Stay Details<span className="text-red-500 mt-1">*</span>
                 </h4>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -981,7 +981,7 @@ export function BookingSheet({ children, room, initialOpen = false, onOpenChange
               <div className="bg-muted/30 rounded-lg p-4 space-y-4">
                 {/* Stay Details */}
                 <div className="space-y-3">
-                  <h5 className="font-medium text-base">Stay Details<span className="text-red-500 mt-1">*</span></h5>
+                  <h5 className="font-medium text-base">Stay Details</h5>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Check-in:</span>
