@@ -22,11 +22,11 @@ async function getRoom(roomid: string) {
     : `${proto}://${host}`
 
   const apiUrl = `${siteBase}/api/rooms/${roomid}`
-  const res = await fetch(apiUrl, { cache: 'no-store' }).catch(() => null)
+  const res = await fetch(apiUrl, { cache: 'no-store', credentials: 'same-origin' }).catch(() => null)
   if (!res || !res.ok) {
     // Fallback to direct backend if internal API is not reachable
-    const backend = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
-    const res2 = await fetch(`${backend}/api/rooms/${roomid}`, { cache: 'no-store' })
+  const backend = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
+  const res2 = await fetch(`${backend}/api/rooms/${roomid}`, { cache: 'no-store' })
     if (!res2.ok) throw new Error('Failed to fetch room')
     return res2.json()
   }

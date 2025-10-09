@@ -61,11 +61,12 @@ export default function RoomsPage() {
     try {
       const authToken = token || AuthTokenManager.getToken()
       if (!authToken) return
-
-      const backend = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000").replace(/\/$/, "")
-      const res = await fetch(`${backend}/api/rooms`, {
+      // Use internal API route so the httpOnly auth cookie (if present) is included;
+      // we still send Authorization for consistency when token is stored locally.
+      const res = await fetch('/api/rooms', {
         headers: { authorization: `Bearer ${authToken}` },
-        cache: "no-store"
+        cache: 'no-store',
+        credentials: 'same-origin'
       })
 
       if (!res.ok) {

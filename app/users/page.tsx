@@ -17,9 +17,12 @@ export const fetchCache = "force-no-store"
 async function requireAdmin() {
   const token = (await cookies()).get('auth_token')?.value
   if (!token) redirect('/login?next=/users')
-  const backend = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
   try {
-    const res = await fetch(`${backend}/api/auth/me`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' })
+    // Use internal auth endpoint so the cookie is automatically used (no cross-origin fetch)
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL ? '' : ''}/api/auth/me`, {
+      cache: 'no-store',
+      headers: { authorization: `Bearer ${token}` }
+    })
     if (!res.ok) redirect('/login?next=/users')
     const data = await res.json()
     if (data?.role !== 'admin') redirect('/')
