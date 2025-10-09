@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import DataPrefetcher from "@/components/common/data-prefetcher";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next"; 
 
 
 
@@ -36,31 +37,32 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-    <body
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        enableSystem={true}
-        disableTransitionOnChange
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <DataPrefetcher />
-        {children}
-        <Toaster 
-          position="top-left" 
-          richColors 
-          toastOptions={{
-            style: {
-              background: 'var(--background)',
-              color: 'var(--foreground)',
-              border: '1px solid var(--border)',
-            },
-            className: 'sonner-toast',
-          }}
-        />
-      </ThemeProvider>
-    </body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={true}
+          disableTransitionOnChange
+        >
+          <DataPrefetcher />
+          {children}
+          <SpeedInsights />
+          <Toaster
+            position="top-left"
+            richColors
+            toastOptions={{
+              style: {
+                background: "var(--background)",
+                color: "var(--foreground)",
+                border: "1px solid var(--border)",
+              },
+              className: "sonner-toast",
+            }}
+          />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
