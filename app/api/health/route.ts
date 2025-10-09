@@ -1,24 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { backendApi } from '@/lib/origin'
 
-export async function GET(request: NextRequest) {
-  const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
-  const target = `${backend.replace(/\/$/, '')}/api/health`
-
+export async function GET() {
+  const target = backendApi('health')
   try {
-    console.log('Proxying health check to:', target)
-    const res = await fetch(target)
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const res = await fetch(target, { cache: 'no-store' })
+    const text = await res.text()
+    try {
+      const data = JSON.parse(text)
+      return NextResponse.json(data, { status: res.status })
+    } catch {
+      return new NextResponse(text, { status: res.status })
+    }
   } catch (err) {
-    console.error('Backend health check error:', err)
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Backend server is not running', 
-        detail: String(err) 
-      },
-      { status: 503 }
-    )
+    return NextResponse.json({ success: false, error: 'Backend unreachable', detail: String(err) }, { status: 503 })
   }
 }
 

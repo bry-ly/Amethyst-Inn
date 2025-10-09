@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { backendApi } from '@/lib/origin'
 
 export async function GET(request: Request) {
-  const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
-  const target = `${backend.replace(/\/$/, '')}/api/users`
+  const target = backendApi('users')
 
   try {
     const auth = request.headers.get('authorization') || undefined

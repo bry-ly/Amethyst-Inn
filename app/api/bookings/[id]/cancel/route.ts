@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-function getBackendBase() {
-  return (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
-}
+import { backendApi } from '@/lib/origin'
 
 export async function PUT(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const backend = getBackendBase()
-  const target = `${backend}/api/bookings/${id}/cancel`
+  const target = backendApi(`bookings/${id}/cancel`)
 
   try {
   const body = await request.text()

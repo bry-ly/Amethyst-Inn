@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-function getBackendBase() {
-  return (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
-}
+import { backendApi } from '@/lib/origin'
 
 export async function GET(request: Request) {
-  const backend = getBackendBase()
-  const target = `${backend}/api/bookings`
+  const target = backendApi('bookings')
 
   try {
     const auth = request.headers.get('authorization') || undefined
@@ -30,8 +26,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const backend = getBackendBase()
-  const target = `${backend}/api/bookings`
+  const target = backendApi('bookings')
 
   try {
     // Get the FormData from the request

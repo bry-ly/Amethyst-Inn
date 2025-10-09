@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
+import { backendApi } from '@/lib/origin'
 
 export async function POST(request: Request) {
-  const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
-  const target = `${backend.replace(/\/$/, '')}/api/auth/login`
+  const target = backendApi('auth/login')
 
   try {
     const body = await request.text()

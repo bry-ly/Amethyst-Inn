@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
+import { backendApi } from '@/lib/origin'
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params
-  const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
+  const target = backendApi(`rooms/${encodeURIComponent(id)}`)
   try {
     const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {
@@ -41,7 +40,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params
-  const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
+  const target = backendApi(`rooms/${encodeURIComponent(id)}`)
 
   try {
     const body = await request.json()
@@ -79,7 +78,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params
-  const target = `${backend.replace(/\/$/, '')}/api/rooms/${encodeURIComponent(id)}`
+  const target = backendApi(`rooms/${encodeURIComponent(id)}`)
 
   try {
     const cookieToken = (await cookies()).get('auth_token')?.value

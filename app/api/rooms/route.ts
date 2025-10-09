@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
+import { backendApi } from '@/lib/origin'
 
 export async function GET(request: NextRequest) {
   // Get query parameters from the request
@@ -9,7 +8,8 @@ export async function GET(request: NextRequest) {
   const queryString = searchParams.toString()
   
   // Build the target URL with query parameters
-  const target = `${backend.replace(/\/$/, '')}/api/rooms${queryString ? `?${queryString}` : ''}`
+  const base = backendApi('rooms')
+  const target = `${base}${queryString ? `?${queryString}` : ''}`
 
   try {
     const cookieToken = (await cookies()).get('auth_token')?.value
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const target = `${backend.replace(/\/$/, '')}/api/rooms`
+  const target = backendApi('rooms')
     
     console.log('Proxying POST request to:', target)
     console.log('Request body:', body)

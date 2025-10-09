@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
+import { backendApi } from '@/lib/origin'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const target = `${backend.replace(/\/$/, '')}/api/payments/create-payment-intent`
+  const target = backendApi('payments/create-payment-intent')
 
     const cookieToken = (await cookies()).get('auth_token')?.value
     const res = await fetch(target, {

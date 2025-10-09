@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { backendApi } from '@/lib/origin'
 
 export async function GET(request: Request) {
   // Try to get token from Authorization header first, then from cookies
@@ -9,9 +10,9 @@ export async function GET(request: Request) {
   
   if (!token) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
 
-  const backend = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
+  const backendMe = backendApi('auth/me')
   try {
-    const res = await fetch(`${backend}/api/auth/me`, {
+    const res = await fetch(backendMe, {
       headers: { authorization: `Bearer ${token}` },
       cache: 'no-store',
     })

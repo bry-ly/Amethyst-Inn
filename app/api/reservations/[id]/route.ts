@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-function getBackendBase() {
-  return (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
-}
+import { backendApi } from '@/lib/origin'
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const backend = getBackendBase()
-  const target = `${backend}/api/reservations/${id}`
+  const target = backendApi(`reservations/${id}`)
 
   try {
   const auth = request.headers.get('authorization') || undefined
@@ -32,8 +28,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
 
 export async function DELETE(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const backend = getBackendBase()
-  const target = `${backend}/api/reservations/${id}`
+  const target = backendApi(`reservations/${id}`)
 
   try {
   const auth = request.headers.get('authorization') || undefined

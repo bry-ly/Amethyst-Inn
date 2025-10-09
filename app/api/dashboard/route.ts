@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { backendApi } from '@/lib/origin'
 
 interface RoomSummary {
   status?: string
@@ -50,8 +51,7 @@ const isBookingArray = (value: unknown): value is BookingSummary[] => Array.isAr
 const isUserArray = (value: unknown): value is UserSummary[] => Array.isArray(value)
 
 export async function GET(request: Request) {
-  const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000'
-  const baseUrl = `${backend.replace(/\/$/, '')}`
+  const baseUrl = backendApi('').replace(/\/$/, '')
 
   try {
     const authHeader = request.headers.get('authorization') || undefined
