@@ -28,11 +28,13 @@ async function requireAdmin() {
     
     const data = await res.json()
     if (data?.role !== 'admin') {
-      redirect('/')
+      // Redirect non-admins to home with stay param to prevent loop
+      redirect('/?stay=1')
     }
     
     return data
-  } catch {
+  } catch (error) {
+    console.error('Admin check failed:', error)
     redirect('/login?next=/admin/users')
   }
 }

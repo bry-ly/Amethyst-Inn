@@ -35,15 +35,8 @@ export async function middleware(req: NextRequest) {
       res.headers.set('Pragma', 'no-cache')
       return res
     }
-    const role = await fetchUserRole(token)
-    if (role !== 'admin') {
-      const url = req.nextUrl.clone()
-      url.pathname = '/dashboard'
-      const res = NextResponse.redirect(url)
-      res.headers.set('Cache-Control', 'no-store')
-      res.headers.set('Pragma', 'no-cache')
-      return res
-    }
+    // Let the page component handle admin check to avoid middleware loop
+    // The admin users page has its own requireAdmin() function
   }
 
   if (isDashboard) {
@@ -75,7 +68,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Root: if authenticated admin, go to dashboard; guests stay on home
-  if (pathname === '/' && token) {
+  if (pathname === '/' && token && !req.nextUrl.searchParams.get('stay')) {
     const role = await fetchUserRole(token)
     if (role === 'admin') {
       const url = req.nextUrl.clone()
