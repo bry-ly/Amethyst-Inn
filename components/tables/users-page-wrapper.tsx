@@ -1,6 +1,7 @@
 "use client";
 
-import { DataTable } from '@/components/tables/data-table';
+import { UserDataTable } from '@/components/tables/user-data-table';
+import { AddUserDialog } from '@/components/tables/add-user-dialog';
 import { useApiData } from '@/hooks/use-api-data';
 import { TableLoader } from '@/components/common/loading-spinner';
 
@@ -35,5 +36,18 @@ export function UsersPageWrapper({ role, initialUsers }: { role?: string; initia
 
   const users = Array.isArray(effectiveData) ? effectiveData : [];
 
-  return <DataTable data={users} onReload={refetch} canManage={role === 'admin'} />;
+  return (
+    <div className="flex-1 space-y-4 h-full">
+      <div className="flex items-center justify-between px-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Users</h2>
+          <p className="text-muted-foreground">
+            {role === 'admin' ? 'Manage user accounts and permissions' : 'View user information'}
+          </p>
+        </div>
+        {role === 'admin' && <AddUserDialog onUserAdded={refetch} />}
+      </div>
+      <UserDataTable data={users} canManage={role === 'admin'} onDataChanged={refetch} />
+    </div>
+  );
 }
