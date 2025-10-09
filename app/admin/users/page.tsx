@@ -19,12 +19,16 @@ async function requireAdmin() {
   if (!token) redirect('/login?next=/admin/users')
   
   try {
-    const res = await fetch('/api/auth/me', { cache: 'no-store' })
+    const backend = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
+    const res = await fetch(`${backend}/api/auth/me`, {
+      headers: { authorization: `Bearer ${token}` },
+      cache: 'no-store'
+    })
     if (!res.ok) redirect('/login?next=/admin/users')
     
     const data = await res.json()
     if (data?.role !== 'admin') {
-      redirect('/dashboard')
+      redirect('/')
     }
     
     return data

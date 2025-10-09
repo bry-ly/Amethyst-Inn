@@ -18,12 +18,6 @@ async function fetchUserRole(token: string): Promise<string | null> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (pathname === '/dashboard') {
-    const url = req.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
   const token = req.cookies.get('auth_token')?.value
   const isDashboard = pathname.startsWith('/dashboard')
   const isAdminRoute = pathname.startsWith('/admin')
