@@ -119,7 +119,7 @@ export class CookieConsent {
         const data = await response.json();
         return data.success;
       }
-      return false;
+      return false; // non-200 -> treat as failure (will degrade gracefully)
     } catch (error) {
       console.error('Failed to send cookie consent to backend:', error);
       return false;
@@ -128,8 +128,15 @@ export class CookieConsent {
 
   // Complete consent flow
   static async setConsentComplete(consent: boolean): Promise<boolean> {
+    // Always set locally first so UX proceeds even if backend call fails.
     this.setConsent(consent);
-    return await this.sendConsentToBackend(consent);
+    const ok = await this.sendConsentToBackend(consent);
+    if (!ok) {
+      // Soft warn – don't block dismissal. Backend persistence is optional.
+      console.warn('[CookieConsent] Backend persistence failed; proceeding with local consent only.');
+      return true; // Treat as success for UI purposes.
+    }
+    return true;
   }
 }
 
