@@ -93,17 +93,19 @@ export function LoginForm({
       toast.success("Login successful!")
       const role: string | undefined = data?.user?.role || data?.role
       const nextParam = searchParams.get('next')
+      
+      // Use window.location.replace() to prevent back button to login page
       if (nextParam) {
         // decode and navigate to next
         try {
           const decoded = decodeURIComponent(nextParam)
-          router.push(decoded)
+          window.location.replace(decoded)
           return
         } catch (e) {
           // fall back to default
         }
       }
-      router.push(role === "admin" ? "/dashboard" : "/")
+      window.location.replace(role === "admin" ? "/dashboard" : "/")
     } catch (err: any) {
       toast.error(err?.message || "Login failed")
     } finally {

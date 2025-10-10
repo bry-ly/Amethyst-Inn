@@ -64,7 +64,12 @@ export async function middleware(req: NextRequest) {
     const role = await fetchUserRole(token)
     const url = req.nextUrl.clone()
     url.pathname = role === 'admin' ? '/dashboard' : '/'
-    return NextResponse.redirect(url)
+    const res = NextResponse.redirect(url)
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0')
+    res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+    res.headers.set('Surrogate-Control', 'no-store')
+    return res
   }
 
   // Root: if authenticated admin, go to dashboard; guests stay on home

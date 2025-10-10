@@ -71,7 +71,7 @@ export function SignupForm({
         throw new Error(data?.message || data?.error || "Signup failed")
       }
       toast.success("Account created successfully! Please login to continue.")
-      router.push("/login")
+      window.location.replace("/login")
     } catch (err: any) {
       toast.error(err?.message || "Signup failed")
     } finally {
