@@ -42,8 +42,17 @@ export function Turnstile({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const isRenderedRef = useRef(false);
 
   useEffect(() => {
+    // Check if script already exists
+    const existingScript = document.querySelector('script[src*="turnstile"]');
+    
+    if (existingScript) {
+      setIsLoaded(true);
+      return;
+    }
+
     // Load Turnstile script
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
@@ -53,18 +62,23 @@ export function Turnstile({
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup
+      // Only cleanup widget, not script (script should stay loaded)
       if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch (error) {
+          console.error("Error removing Turnstile widget:", error);
+        }
       }
-      document.head.removeChild(script);
     };
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || !containerRef.current || !window.turnstile) return;
+    if (!isLoaded || !containerRef.current || !window.turnstile || isRenderedRef.current) {
+      return;
+    }
 
-    // Render Turnstile widget
+    // Render Turnstile widget only once
     try {
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
@@ -74,6 +88,7 @@ export function Turnstile({
         theme,
         size,
       });
+      isRenderedRef.current = true;
     } catch (error) {
       console.error("Failed to render Turnstile:", error);
       onError?.();
@@ -81,10 +96,15 @@ export function Turnstile({
 
     return () => {
       if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+          isRenderedRef.current = false;
+        } catch (error) {
+          console.error("Error removing Turnstile widget:", error);
+        }
       }
     };
-  }, [isLoaded, siteKey, onSuccess, onError, onExpire, theme, size]);
+  }, [isLoaded, siteKey, theme, size]);
 
   return <div ref={containerRef} className="flex justify-center my-4" />;
 }

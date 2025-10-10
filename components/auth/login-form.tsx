@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,21 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+
+  // Memoize callbacks to prevent Turnstile re-renders
+  const handleTurnstileSuccess = useCallback((token: string) => {
+    setTurnstileToken(token)
+  }, [])
+
+  const handleTurnstileError = useCallback(() => {
+    setTurnstileToken(null)
+    toast.error("Security verification failed. Please try again.")
+  }, [])
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken(null)
+    toast.warning("Security verification expired. Please verify again.")
+  }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -155,15 +170,9 @@ export function LoginForm({
               </div>
               <Turnstile
                 siteKey="0x4AAAAAAB5yfAHgiw_rGKsj"
-                onSuccess={(token) => setTurnstileToken(token)}
-                onError={() => {
-                  setTurnstileToken(null)
-                  toast.error("Security verification failed. Please try again.")
-                }}
-                onExpire={() => {
-                  setTurnstileToken(null)
-                  toast.warning("Security verification expired. Please verify again.")
-                }}
+                onSuccess={handleTurnstileSuccess}
+                onError={handleTurnstileError}
+                onExpire={handleTurnstileExpire}
                 theme="auto"
                 size="normal"
               />
