@@ -194,9 +194,9 @@ export function ChartAreaInteractive({ dashboardData }: { dashboardData?: Dashbo
           <Area
             dataKey={chartType}
             type="natural"
-            fill="var(--color-bookings)"
+            fill="var(--chart-1)"
             fillOpacity={0.4}
-            stroke="var(--color-bookings)"
+            stroke="var(--chart-2)"
             stackId="a"
           />
         </AreaChart>

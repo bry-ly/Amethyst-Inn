@@ -29,6 +29,9 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  
+  // Only require Turnstile in production
+  const isProduction = process.env.NODE_ENV === "production"
 
   // Memoize callbacks to prevent Turnstile re-renders
   const handleTurnstileSuccess = useCallback((token: string) => {
@@ -66,16 +69,22 @@ export function LoginForm({
         setLoading(false)
         return
       }
-      if (!turnstileToken) {
+      if (isProduction && !turnstileToken) {
         toast.error("Please complete the security verification")
         setLoading(false)
         return
       }
       
+      // Prepare request body - only include turnstileToken in production
+      const requestBody: any = { email, password };
+      if (isProduction && turnstileToken) {
+        requestBody.turnstileToken = turnstileToken;
+      }
+      
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password, turnstileToken }),
+        body: JSON.stringify(requestBody),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -171,15 +180,17 @@ export function LoginForm({
                 </div>
               </div>
               <div className="flex flex-col gap-3">
-                <Turnstile
-                  siteKey="0x4AAAAAAB5yfAHgiw_rGKsj"
-                  onSuccess={handleTurnstileSuccess}
-                  onError={handleTurnstileError}
-                  onExpire={handleTurnstileExpire}
-                  theme="auto"
-                  size="normal"
-                />
-                <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
+                {isProduction && (
+                  <Turnstile
+                    siteKey="0x4AAAAAAB5yfAHgiw_rGKsj"
+                    onSuccess={handleTurnstileSuccess}
+                    onError={handleTurnstileError}
+                    onExpire={handleTurnstileExpire}
+                    theme="auto"
+                    size="normal"
+                  />
+                )}
+                <Button type="submit" className="w-full" disabled={loading || (isProduction && !turnstileToken)}>
                   {loading && <IconLoader className="mr-2 size-4 animate-spin" />}
                   {loading ? "Logging in..." : "Login"}
                 </Button>
