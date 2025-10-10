@@ -84,8 +84,11 @@ export function Turnstile({
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         callback: (token: string) => {
-          setIsVerified(true);
           onSuccess(token);
+          // Wait 10 seconds before hiding
+          setTimeout(() => {
+            setIsVerified(true);
+          }, 10000);
         },
         "error-callback": () => {
           setIsVerified(false);
