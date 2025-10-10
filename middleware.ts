@@ -78,10 +78,15 @@ export async function middleware(req: NextRequest) {
   }
 
   const res = NextResponse.next()
-  if (isDashboard || isAuthPage) {
-    res.headers.set('Cache-Control', 'no-store')
+  
+  // Set no-cache headers for all protected routes to prevent back button access after logout
+  if (isDashboard || isAuthPage || isAdminRoute || (token && pathname !== '/')) {
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0')
     res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+    res.headers.set('Surrogate-Control', 'no-store')
   }
+  
   return res
 }
 

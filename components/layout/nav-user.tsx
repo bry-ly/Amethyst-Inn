@@ -115,6 +115,9 @@ export function NavUser({
                   // Clear localStorage token
                   localStorage.removeItem('token')
                   
+                  // Clear session storage
+                  sessionStorage.clear()
+                  
                   // Clear all cached data
                   if (typeof window !== 'undefined') {
                     // Clear any cached data from our API hook
@@ -123,15 +126,22 @@ export function NavUser({
                   }
                   
                   // Call logout API to clear cookie
-                  await fetch('/api/auth/logout', { method: 'POST' })
+                  await fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    credentials: 'include'
+                  })
                   
-                  // Force redirect to login page
-                  window.location.href = '/login'
+                  // Clear browser history to prevent back button
+                  window.history.replaceState(null, '', '/login')
+                  
+                  // Force full page reload to clear any cached state
+                  window.location.replace('/login')
                 } catch (err) {
                   console.error('Logout error:', err)
                   // Even if API call fails, clear local data and redirect
                   localStorage.removeItem('token')
-                  window.location.href = '/login'
+                  sessionStorage.clear()
+                  window.location.replace('/login')
                 }
               }}
             >
