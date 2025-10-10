@@ -42,6 +42,7 @@ export function Turnstile({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const isRenderedRef = useRef(false);
 
   useEffect(() => {
@@ -82,9 +83,18 @@ export function Turnstile({
     try {
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
-        callback: onSuccess,
-        "error-callback": onError,
-        "expired-callback": onExpire,
+        callback: (token: string) => {
+          setIsVerified(true);
+          onSuccess(token);
+        },
+        "error-callback": () => {
+          setIsVerified(false);
+          onError?.();
+        },
+        "expired-callback": () => {
+          setIsVerified(false);
+          onExpire?.();
+        },
         theme,
         size,
       });
@@ -106,5 +116,10 @@ export function Turnstile({
     };
   }, [isLoaded, siteKey, theme, size]);
 
-  return <div ref={containerRef} className="flex justify-center my-4" />;
+  // Hide the widget after successful verification
+  if (isVerified) {
+    return null;
+  }
+
+  return <div ref={containerRef} className="flex justify-center" />;
 }

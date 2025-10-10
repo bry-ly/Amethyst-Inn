@@ -168,15 +168,15 @@ export function LoginForm({
                   </button>
                 </div>
               </div>
-              <Turnstile
-                siteKey="0x4AAAAAAB5yfAHgiw_rGKsj"
-                onSuccess={handleTurnstileSuccess}
-                onError={handleTurnstileError}
-                onExpire={handleTurnstileExpire}
-                theme="auto"
-                size="normal"
-              />
               <div className="flex flex-col gap-3">
+                <Turnstile
+                  siteKey="0x4AAAAAAB5yfAHgiw_rGKsj"
+                  onSuccess={handleTurnstileSuccess}
+                  onError={handleTurnstileError}
+                  onExpire={handleTurnstileExpire}
+                  theme="auto"
+                  size="normal"
+                />
                 <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                   {loading && <IconLoader className="mr-2 size-4 animate-spin" />}
                   {loading ? "Logging in..." : "Login"}
