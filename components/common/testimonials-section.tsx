@@ -68,7 +68,7 @@ export function TestimonialsSection() {
                       <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white font-poppins">
                         {testimonial.name}
                       </h4>
-                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-600 font-roboto mt-1">
+                      <p className="text-sm sm:text-base text-primary-foreground dark:text-orange-400 font-roboto mt-1">
                         {testimonial.role}
                       </p>
                       {testimonial.location && (

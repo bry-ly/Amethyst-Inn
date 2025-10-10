@@ -16,6 +16,7 @@ import Link from "next/link"
 import { IconEye, IconEyeOff, IconLoader } from "@tabler/icons-react"
 import { toast } from "sonner"
 import { AuthTokenManager, CookieConsent } from "@/utils/cookies"
+import { Turnstile } from "@/components/auth/turnstile"
 
 export function LoginForm({
   className,
@@ -27,6 +28,7 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,11 +51,16 @@ export function LoginForm({
         setLoading(false)
         return
       }
+      if (!turnstileToken) {
+        toast.error("Please complete the security verification")
+        setLoading(false)
+        return
+      }
       
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -146,8 +153,22 @@ export function LoginForm({
                   </button>
                 </div>
               </div>
+              <Turnstile
+                siteKey="0x4AAAAAAB5yfAHgiw_rGKsj"
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => {
+                  setTurnstileToken(null)
+                  toast.error("Security verification failed. Please try again.")
+                }}
+                onExpire={() => {
+                  setTurnstileToken(null)
+                  toast.warning("Security verification expired. Please verify again.")
+                }}
+                theme="auto"
+                size="normal"
+              />
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                   {loading && <IconLoader className="mr-2 size-4 animate-spin" />}
                   {loading ? "Logging in..." : "Login"}
                 </Button>

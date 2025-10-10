@@ -21,7 +21,7 @@ export function AmenitiesSection() {
           {amenities.map((amenity, index) => (
             <div
               key={index}
-              className="bg-white dark:bg-primary-foreground border border-gray-300 dark:border-gray-700 p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div className="text-primary  mb-4">{amenity.icon}</div>
               <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">
