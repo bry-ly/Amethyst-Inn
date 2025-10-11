@@ -59,7 +59,7 @@ export default function HeaderSection({
   };
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
           className="flex items-center gap-2 font-semibold text-nowrap"
@@ -220,7 +220,7 @@ export default function HeaderSection({
       {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur">
-          <nav className="container mx-auto px-4 py-4 space-y-4">
+          <nav className="max-w-7xl mx-auto px-4 py-4 space-y-4">
             <Link
               href="/"
               className="block py-2 text-sm font-medium transition-colors hover:text-primary hover:underline"

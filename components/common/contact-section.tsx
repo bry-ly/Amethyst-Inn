@@ -7,7 +7,7 @@ export default function ContactSection() {
   return (
     <section
       id="contact"
-      className="container mx-auto flex flex-col items-center justify-center px-4 py-16 sm:px-6 sm:py-20 lg:px-8"
+      className="max-w-7xl mx-auto flex flex-col items-center justify-center px-4 py-16 sm:px-6 sm:py-20 lg:px-8"
     >
       <h2 className="text-3xl font-bold text-center">Contact Us</h2>
       <p className="mx-auto mt-2 max-w-2xl text-center">

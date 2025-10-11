@@ -181,7 +181,7 @@ export default function Home() {
         <TestimonialsSection />
       <AmenitiesSection />
       <ContactSection />
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-8 flex items-center gap-2 justify-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 flex items-center gap-2 justify-center">
         <Footer2 />
       </div>
       <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>

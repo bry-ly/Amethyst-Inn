@@ -6,8 +6,8 @@ import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const About: React.FC = () => (
-    <section id="about" className="container mx-auto px-4 py-12">
-        <div className="max-w-7xl mx-auto grid gap-8 md:grid-cols-2 items-center">
+    <section id="about" className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-8 md:grid-cols-2 items-center ">
             <div className="relative h-64 md:h-80 rounded-lg overflow-hidden shadow-lg">
                 <Image
                     src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80"

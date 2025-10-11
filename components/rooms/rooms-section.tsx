@@ -263,8 +263,28 @@ export function RoomsSection() {
                     id="showUnavailable"
                     checked={showUnavailable}
                     onChange={(e) => {
-                      setShowUnavailable(e.target.checked);
-                      handleFilterChange();
+                      const checked = e.target.checked;
+                      setShowUnavailable(checked);
+                      // Update filters immediately with the new value
+                      const newFilters: any = {
+                        page: 1,
+                        limit: 50,
+                        sort: sortBy,
+                        order: sortBy === 'price' ? 'asc' : 'desc'
+                      };
+                      
+                      if (searchTerm.trim()) newFilters.search = searchTerm.trim();
+                      if (selectedType !== "all") newFilters.type = selectedType;
+                      if (priceRange !== "all") {
+                        switch (priceRange) {
+                          case "under-150": newFilters.maxPrice = 150; break;
+                          case "150-200": newFilters.minPrice = 150; newFilters.maxPrice = 200; break;
+                          case "over-200": newFilters.minPrice = 200; break;
+                        }
+                      }
+                      if (!checked) newFilters.status = 'available';
+                      
+                      updateFilters(newFilters);
                     }}
                     className="rounded border-gray-300 h-4 w-4"
                     disabled={loading}
@@ -371,11 +391,11 @@ export function RoomsSection() {
                 }}
                 className="w-full"
               >
-                <CarouselContent className="relative h-full items-stretch pb-6">
+                <CarouselContent className="relative items-stretch pb-6">
                   {filteredRooms.map((room) => (
                     <CarouselItem
                       key={room._id}
-                      className="flex h-135  basis-full pl-4 sm:basis-1/3 lg:basis-1/3"
+                      className="flex basis-full pl-4 sm:basis-1/2 lg:basis-1/3"
                     >
                       <RoomCard room={room} openBookingId={bookParam} />
                     </CarouselItem>

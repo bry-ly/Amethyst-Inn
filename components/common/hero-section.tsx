@@ -24,7 +24,7 @@ export default function HeroSection({ user, onBookingClick }: HeroSectionProps) 
           priority
         />
       </div>
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 md:py-28 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 md:py-28 text-center">
         <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight">
           Welcome to Amethyst Inn
         </h1>
@@ -53,7 +53,7 @@ export default function HeroSection({ user, onBookingClick }: HeroSectionProps) 
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto dark:hover:bg-gray-700 dark:bg-sidebar"
+              className="w-full sm:w-auto dark:hover:bg-shadow dark:bg-secondary"
             >
               View Rooms
             </Button>

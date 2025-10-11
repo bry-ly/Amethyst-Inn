@@ -44,7 +44,7 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="dark"
           enableSystem={true}
-          disableTransitionOnChange
+          disableTransitionOnChange={false}
         >
           <DataPrefetcher />
           {children}

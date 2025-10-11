@@ -255,20 +255,20 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
     <>
       <Card
         id={`room-${room._id}`}
-        className={`group flex flex-col h-135 w-full  overflow-hidden transition-all duration-500 ${
+        className={`group flex flex-col w-full min-h-[580px] overflow-hidden transition-all duration-500 ${
           room.isAvailable
             ? "hover:shadow-2xl hover:shadow-primary/10 border-primary/20"
             : "opacity-75 bg-gray-50 dark:bg-[hsl(var(--card))]"
         }`}
       >
         {/* Image Section */}
-        <div className="relative h-48 md:h-56 lg:h-90 xl:h-90 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+        <div className="relative h-48 md:h-56 lg:h-64 xl:h-64 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex-shrink-0">
           <Image
             src={room.images?.[currentImageIndex] || primaryImage}
             alt={`Room ${room.number}`}
             fill
             sizes="(max-width: 1024px) 100vw, 360px"
-            className="object-cover transition-transform duration-700 "
+            className="object-cover transition-transform duration-700"
             onError={(e) => {
               e.currentTarget.src = "/placeholder-room.jpg";
             }}
@@ -320,10 +320,33 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
             </div>
           </div>
 
+          {/* Availability Banner Overlay */}
+          {!room.isAvailable && room.nextAvailableDate && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/90 via-blue-800/80 to-transparent backdrop-blur-sm p-4 pt-8">
+              <div className="flex items-center gap-2 text-white">
+                <Calendar className="h-4 w-4 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">
+                    {formatAvailability(room.nextAvailableDate)}
+                  </p>
+                  <p className="text-xs opacity-90">
+                    {new Date(room.nextAvailableDate).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status Badge */}
-          <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
+          <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1.5">
             <Badge
-              className={`text-xs font-medium shadow-lg ${
+              className={`text-xs font-medium shadow-lg whitespace-nowrap ${
                 room.isAvailable
                   ? "bg-green-500/90 text-white"
                   : "bg-red-500/90 text-white"
@@ -331,50 +354,21 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
             >
               {room.isAvailable ? (
                 <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3" />
+                  <CheckCircle className="h-3 w-3 flex-shrink-0" />
                   <span>Available</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1">
-                  <XCircle className="h-3 w-3" />
+                  <XCircle className="h-3 w-3 flex-shrink-0" />
                   <span>Unavailable</span>
                 </div>
               )}
             </Badge>
-            
-            {/* Next Available Date Badge */}
-            {!room.isAvailable && room.nextAvailableDate && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant="secondary"
-                      className="text-xs font-medium shadow-lg bg-blue-500/90 text-white backdrop-blur-sm"
-                    >
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {formatAvailability(room.nextAvailableDate)}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Estimated next availability</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(room.nextAvailableDate).toLocaleString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </div>
         </div>
 
         {/* Content Section */}
-        <CardHeader className="p-4 pb-2">
+        <CardHeader className="p-4 pb-0">
           <div className="flex justify-between items-start gap-3">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-xl font-bold mb-2 text-gray-900 dark:text-primary group-hover:text-primary transition-colors">
@@ -405,12 +399,11 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 pt-0">
-          <div className="space-y-3">
+        <CardContent className="p-4 pt-2 flex flex-col flex-1">
+          <div className="space-y-3 flex-1">
             {/* Description */}
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">
-              {room.description ||
-                "A comfortable and well-appointed room designed for your relaxation and convenience."}
+              {room.description}
             </p>
 
             {/* Features */}
@@ -449,29 +442,6 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                 </div>
               ))}
             </div>
-
-            {/* Availability Info Banner */}
-            {!room.isAvailable && room.nextAvailableDate && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      {formatAvailability(room.nextAvailableDate)}
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                      {new Date(room.nextAvailableDate).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Action Buttons */}
