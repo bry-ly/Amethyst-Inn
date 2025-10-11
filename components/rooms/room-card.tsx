@@ -85,6 +85,7 @@ interface Room {
   isActive?: boolean;
   isAvailable?: boolean;
   activeBookings?: number;
+  nextAvailableDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -150,6 +151,43 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
   // Format room type for display
   const formatRoomType = (type: string) => {
     return type.charAt(0).toUpperCase() + type.slice(1).replace("_", " ");
+  };
+
+  // Format next available date/time
+  const formatAvailability = (nextAvailableDate: string | null | undefined) => {
+    if (!nextAvailableDate) return null;
+    
+    const now = new Date();
+    const availableDate = new Date(nextAvailableDate);
+    const diffMs = availableDate.getTime() - now.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    const remainingHours = diffHours % 24;
+    
+    if (diffMs <= 0) return "Available soon";
+    
+    if (diffDays === 0) {
+      if (diffHours === 0) return "Available in less than 1 hour";
+      if (diffHours === 1) return "Available in 1 hour";
+      return `Available in ${diffHours} hours`;
+    }
+    
+    if (diffDays === 1) {
+      if (remainingHours === 0) return "Available in 1 day";
+      return `Available in 1 day ${remainingHours}h`;
+    }
+    
+    if (diffDays < 7) {
+      if (remainingHours === 0) return `Available in ${diffDays} days`;
+      return `Available in ${diffDays} days ${remainingHours}h`;
+    }
+    
+    // For dates more than a week away, show the actual date
+    return `Available on ${availableDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: availableDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    })}`;
   };
 
   // Get room features as display items
@@ -283,7 +321,7 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
           </div>
 
           {/* Status Badge */}
-          <div className="absolute bottom-3 right-3">
+          <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
             <Badge
               className={`text-xs font-medium shadow-lg ${
                 room.isAvailable
@@ -303,6 +341,35 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                 </div>
               )}
             </Badge>
+            
+            {/* Next Available Date Badge */}
+            {!room.isAvailable && room.nextAvailableDate && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs font-medium shadow-lg bg-blue-500/90 text-white backdrop-blur-sm"
+                    >
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {formatAvailability(room.nextAvailableDate)}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Estimated next availability</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(room.nextAvailableDate).toLocaleString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
 
@@ -382,6 +449,29 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                 </div>
               ))}
             </div>
+
+            {/* Availability Info Banner */}
+            {!room.isAvailable && room.nextAvailableDate && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      {formatAvailability(room.nextAvailableDate)}
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                      {new Date(room.nextAvailableDate).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
