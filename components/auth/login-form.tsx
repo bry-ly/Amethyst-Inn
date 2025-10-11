@@ -29,6 +29,8 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   
   // Only require Turnstile in production
   const isProduction = process.env.NODE_ENV === "production"
@@ -55,17 +57,17 @@ export function LoginForm({
     try {
       // Validation
       if (!email.trim()) {
-        toast.error("Email is required")
+        setEmailError('Email is required')
         setLoading(false)
         return
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        toast.error("Please enter a valid email address")
+        setEmailError('Please enter a valid email address')
         setLoading(false)
         return
       }
       if (!password) {
-        toast.error("Password is required")
+        setPasswordError('Password is required')
         setLoading(false)
         return
       }
@@ -143,9 +145,10 @@ export function LoginForm({
                   required
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
                   disabled={loading}
                 />
+                {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
@@ -165,9 +168,10 @@ export function LoginForm({
                     required
                     autoComplete="current-password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); if (passwordError) setPasswordError(null); }}
                     disabled={loading}
                   />
+                  {passwordError && <p className="text-sm text-red-600 mt-1">{passwordError}</p>}
                   <button
                     type="button"
                     aria-label={showPassword ? "Hide password" : "Show password"}

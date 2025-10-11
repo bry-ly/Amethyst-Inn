@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { IconEye, IconEyeOff, IconLoader } from "@tabler/icons-react"
 import { toast } from "sonner"
+import React, { useEffect } from 'react'
 
 export function SignupForm({
   className,
@@ -23,40 +24,90 @@ export function SignupForm({
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [bannedWords, setBannedWords] = useState<string[]>([])
+  const [nameError, setNameError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    fetch('/api/config/banned-words')
+      .then((r) => r.json())
+      .then((j) => {
+        if (!mounted) return
+        if (j?.success && j.data) {
+          const combined = [ ...(j.data.english || []), ...(j.data.filipino || []) ]
+          setBannedWords(combined.map((s: string) => String(s).toLowerCase().trim()).filter(Boolean))
+        }
+      })
+      .catch(() => {})
+    return () => { mounted = false }
+  }, [])
+
+  const normalizeForCheck = (input: string) => {
+    if (!input) return ''
+    let s = input.normalize('NFKC').toLowerCase()
+    // basic leet replacements
+    const map: Record<string,string> = { '4':'a','@':'a','3':'e','1':'i','!':'i','0':'o','$':'s','5':'s','7':'t' }
+    for (const k in map) s = s.replace(new RegExp(k,'g'), map[k])
+    // remove punctuation
+    s = s.replace(/[\p{P}\p{S}]+/gu, ' ').replace(/\s+/g,' ').trim()
+    return s
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // prevent duplicate submissions while a request is in-flight
+    if (loading) return
     setLoading(true)
     
     try {
       // Validation
       if (!name.trim()) {
-        toast.error("Name is required")
+        setNameError('Name is required')
         setLoading(false)
         return
       }
+      // client-side banned words check
+      const norm = normalizeForCheck(name)
+      for (const bw of bannedWords) {
+        if (!bw) continue
+        if (norm.includes(bw)) {
+          setNameError('Name contains inappropriate words')
+          setLoading(false)
+          return
+        }
+      }
+      // clear any name error
+      setNameError(null)
+      // clear previous form errors
+      setEmailError(null)
+      setPasswordError(null)
+      setConfirmError(null)
+
       if (!email.trim()) {
-        toast.error("Email is required")
+        setEmailError('Email is required')
         setLoading(false)
         return
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        toast.error("Please enter a valid email address")
+        setEmailError('Please enter a valid email address')
         setLoading(false)
         return
       }
       if (!password) {
-        toast.error("Password is required")
+        setPasswordError('Password is required')
         setLoading(false)
         return
       }
       if (password.length < 8) {
-        toast.error("Password must be at least 8 characters long")
+        setPasswordError('Password must be at least 8 characters long')
         setLoading(false)
         return
       }
       if (password !== confirmPassword) {
-        toast.error("Passwords do not match")
+        setConfirmError('Passwords do not match')
         setLoading(false)
         return
       }
@@ -70,8 +121,10 @@ export function SignupForm({
       if (!res.ok) {
         throw new Error(data?.message || data?.error || "Signup failed")
       }
-      toast.success("Account created successfully! Please login to continue.")
-      window.location.replace("/login")
+  toast.success("Account created successfully! Please login to continue.")
+  // Use Next.js router to navigate to login within the app
+  // Append ?force=1 so middleware won't redirect authenticated users away from the auth page
+  router.push('/login?force=1')
     } catch (err: any) {
       toast.error(err?.message || "Signup failed")
     } finally {
@@ -99,9 +152,10 @@ export function SignupForm({
                   required
                   autoComplete="name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); if (nameError) setNameError(null); }}
                   disabled={loading}
                 />
+                {nameError && <p className="text-sm text-red-600 mt-1">{nameError}</p>}
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
@@ -113,9 +167,10 @@ export function SignupForm({
                   required
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
                   disabled={loading}
                 />
+                {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="phone">Phone Number</Label>
@@ -140,7 +195,7 @@ export function SignupForm({
                     required
                     autoComplete="new-password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); if (passwordError) setPasswordError(null); if (confirmError) setConfirmError(null); }}
                     disabled={loading}
                   />
                   <button
@@ -164,7 +219,7 @@ export function SignupForm({
                     required
                     autoComplete="new-password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => { setConfirmPassword(e.target.value); if (confirmError) setConfirmError(null); }}
                     disabled={loading}
                   />
                   <button
@@ -178,6 +233,8 @@ export function SignupForm({
                   </button>
                 </div>
               </div>
+              {passwordError && <p className="text-sm text-red-600 mt-1">{passwordError}</p>}
+              {confirmError && <p className="text-sm text-red-600 mt-1">{confirmError}</p>}
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <IconLoader className="mr-2 size-4 animate-spin" />}
