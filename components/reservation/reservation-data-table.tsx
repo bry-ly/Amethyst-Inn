@@ -138,6 +138,29 @@ function ReservationDetailsDialog({
 }) {
   const [isUpdating, setIsUpdating] = React.useState(false);
 
+  // Compute values before early return to avoid hook violations
+  const identificationDocument = React.useMemo(() => {
+    if (!reservation) return null;
+    const doc = reservation.identificationDocument;
+    if (!doc) return null;
+    if (typeof doc === 'string') {
+      const backendUrl = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
+      const normalizedPath = doc.startsWith('http') ? doc : `${backendUrl}/${doc.replace(/^\//, '')}`;
+      const filename = doc.split('/').pop() ?? 'document';
+      return {
+        _id: doc,
+        filename,
+        originalName: filename,
+        mimetype: undefined,
+        size: undefined,
+        url: normalizedPath,
+        path: doc,
+      };
+    }
+    return doc;
+  }, [reservation]);
+
+  // Early return AFTER all hooks
   if (!reservation) return null;
 
   const handleConfirm = async () => {
@@ -205,26 +228,8 @@ function ReservationDetailsDialog({
   const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
   const expiresAt = reservation.expiresAt ? new Date(reservation.expiresAt) : null;
   const isExpired = expiresAt && new Date() > expiresAt && reservation.status === 'pending';
-  const identificationDocument = React.useMemo(() => {
-    const doc = reservation.identificationDocument;
-    if (!doc) return null;
-    if (typeof doc === 'string') {
-      const backendUrl = (process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
-      const normalizedPath = doc.startsWith('http') ? doc : `${backendUrl}/${doc.replace(/^\//, '')}`;
-      const filename = doc.split('/').pop() ?? 'document';
-      return {
-        _id: doc,
-        filename,
-        originalName: filename,
-        mimetype: undefined,
-        size: undefined,
-        url: normalizedPath,
-        path: doc,
-      };
-    }
-    return doc;
-  }, [reservation.identificationDocument]);
 
+  // identificationDocument is already computed above with useMemo before early return
   const identificationDocumentName = identificationDocument?.originalName ?? identificationDocument?.filename ?? 'Document on file';
   const identificationDocumentSize = typeof identificationDocument?.size === 'number'
     ? `${(identificationDocument.size / 1024).toFixed(1)} KB`
