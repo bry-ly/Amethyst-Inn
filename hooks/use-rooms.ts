@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 
 export interface Room {
@@ -82,26 +82,36 @@ export function useRooms(options: UseRoomsOptions = {}): UseRoomsReturn {
   } | null>(null);
   const [currentFilters, setCurrentFilters] = useState<RoomFilters>(filters);
 
+  // Memoize query string to prevent unnecessary refetches
+  const queryString = useMemo(() => {
+    const queryParams = new URLSearchParams();
+    Object.entries(currentFilters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+    return queryParams.toString();
+  }, [currentFilters]);
+
   const fetchRooms = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      Object.entries(currentFilters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          queryParams.append(key, String(value));
-        }
-      });
-
-      const queryString = queryParams.toString();
       const endpoint = queryString ? `/api/rooms?${queryString}` : '/api/rooms';
 
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint, {
+        // Add cache control for better performance
+        cache: 'no-store',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
-      if (response.ok && data.success !== false) {
+      if (data.success !== false) {
         setRooms(data.data || data);
         setPagination(data.pagination || null);
       } else {
@@ -117,7 +127,7 @@ export function useRooms(options: UseRoomsOptions = {}): UseRoomsReturn {
     } finally {
       setLoading(false);
     }
-  }, [currentFilters]);
+  }, [queryString]);
 
   const updateFilters = useCallback((newFilters: Partial<RoomFilters>) => {
     setCurrentFilters(prev => ({ ...prev, ...newFilters }));

@@ -13,7 +13,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { toast } from "sonner";
 import { AuthTokenManager, CookieConsent } from "@/utils/cookies";
 import { CookieConsentToast } from "@/components/common/cookie-consent-toast";
@@ -31,15 +31,16 @@ export default function Home() {
   const [cookieConsent, setCookieConsent] = useState<boolean | null>(null);
   const [isClient, setIsClient] = useState(false);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+  // Memoize callbacks to prevent unnecessary re-renders
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(prev => !prev);
+  }, []);
 
-  const closeMobileMenu = () => {
+  const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
-  };
+  }, []);
 
-  const handleBookingClick = (e: React.MouseEvent) => {
+  const handleBookingClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     
     // If user is not logged in, show login dialog
@@ -50,7 +51,7 @@ export default function Home() {
     
     // If user is logged in, the BookingSheet will handle the booking
     // The sheet will be triggered by the button click
-  };
+  }, [user]);
 
   // Set client state after hydration
   useEffect(() => {
@@ -115,7 +116,8 @@ export default function Home() {
     return () => window.removeEventListener('openLoginDialog', onOpenLogin)
   }, [])
 
-  const handleLogout = async () => {
+  // Memoize logout handler
+  const handleLogout = useCallback(async () => {
     try {
       // Clear token using utility
       AuthTokenManager.clearToken();
@@ -146,9 +148,10 @@ export default function Home() {
         window.location.reload();
       }, 1000);
     }
-  };
+  }, []);
 
-  const handleCookieConsentChange = (consent: boolean) => {
+  // Memoize cookie consent handler
+  const handleCookieConsentChange = useCallback((consent: boolean) => {
     setCookieConsent(consent);
     // If user just granted consent and is logged in, we might want to store token in cookies
     if (consent && user) {
@@ -157,7 +160,7 @@ export default function Home() {
         AuthTokenManager.setToken(token, true);
       }
     }
-  };
+  }, [user]);
 
   return (
     <main className="min-h-screen bg-background text-foreground">

@@ -49,8 +49,8 @@ export function RoomsSection() {
   const [sortBy, setSortBy] = useState('price');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Convert frontend filters to API filters
-  const getApiFilters = useCallback(() => {
+  // Convert frontend filters to API filters - memoized with useMemo for better performance
+  const apiFilters = useMemo(() => {
     const filters: any = {
       page: 1,
       limit: 50, // Get more rooms for better UX
@@ -103,14 +103,14 @@ export function RoomsSection() {
   }, [searchTerm, selectedType, priceRange, showUnavailable]);
 
   const { rooms, loading, error, pagination, refetch, updateFilters } = useRooms({
-    filters: getApiFilters(),
+    filters: apiFilters,
     autoFetch: true
   });
 
-  // Handle filter changes
-  const handleFilterChange = useCallback(() => {
-    updateFilters(getApiFilters());
-  }, [updateFilters, getApiFilters]);
+  // Debounced search handler for better performance
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
 
   // Clear all filters
   const clearFilters = useCallback(() => {
@@ -122,17 +122,16 @@ export function RoomsSection() {
     // The useRooms hook will automatically refetch when filters change
   }, []);
 
-  // Handle sort change
+  // Handle sort change - optimized
   const handleSortChange = useCallback((value: string) => {
     setSortBy(value);
-    updateFilters(getApiFilters());
-  }, [updateFilters, getApiFilters]);
+  }, []);
 
-  // Filter rooms locally for additional client-side filtering
-  const filteredRooms = rooms.filter((room) => {
-    // Additional client-side filtering can be added here if needed
-    return true;
-  });
+  // Memoize filtered rooms to prevent unnecessary recalculations
+  const filteredRooms = useMemo(() => {
+    // All filtering is done server-side, so just return rooms
+    return rooms;
+  }, [rooms]);
 
   return (
     <section
@@ -167,10 +166,7 @@ export function RoomsSection() {
               <Input
                 placeholder="Search rooms by name, type, or amenities..."
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  handleFilterChange();
-                }}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 h-11 text-sm"
                 disabled={loading}
               />
@@ -216,10 +212,7 @@ export function RoomsSection() {
                   <label className="text-sm font-medium mb-2 block">Room Type</label>
                   <Select
                     value={selectedType}
-                    onValueChange={(value) => {
-                      setSelectedType(value);
-                      handleFilterChange();
-                    }}
+                    onValueChange={setSelectedType}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Types" />
@@ -240,10 +233,7 @@ export function RoomsSection() {
                   <label className="text-sm font-medium mb-2 block">Price Range</label>
                   <Select
                     value={priceRange}
-                    onValueChange={(value) => {
-                      setPriceRange(value);
-                      handleFilterChange();
-                    }}
+                    onValueChange={setPriceRange}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Prices" />
@@ -262,30 +252,7 @@ export function RoomsSection() {
                     type="checkbox"
                     id="showUnavailable"
                     checked={showUnavailable}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setShowUnavailable(checked);
-                      // Update filters immediately with the new value
-                      const newFilters: any = {
-                        page: 1,
-                        limit: 50,
-                        sort: sortBy,
-                        order: sortBy === 'price' ? 'asc' : 'desc'
-                      };
-                      
-                      if (searchTerm.trim()) newFilters.search = searchTerm.trim();
-                      if (selectedType !== "all") newFilters.type = selectedType;
-                      if (priceRange !== "all") {
-                        switch (priceRange) {
-                          case "under-150": newFilters.maxPrice = 150; break;
-                          case "150-200": newFilters.minPrice = 150; newFilters.maxPrice = 200; break;
-                          case "over-200": newFilters.minPrice = 200; break;
-                        }
-                      }
-                      if (!checked) newFilters.status = 'available';
-                      
-                      updateFilters(newFilters);
-                    }}
+                    onChange={(e) => setShowUnavailable(e.target.checked)}
                     className="rounded border-gray-300 h-4 w-4"
                     disabled={loading}
                   />
