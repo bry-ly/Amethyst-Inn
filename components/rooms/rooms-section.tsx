@@ -355,21 +355,26 @@ export function RoomsSection() {
                 opts={{
                   align: "start",
                   loop: false,
+                  duration: 20,
+                  dragFree: false,
+                  containScroll: "trimSnaps",
                 }}
                 className="w-full"
               >
-                <CarouselContent className="relative items-stretch pb-6">
+                <CarouselContent className="-ml-4">
                   {filteredRooms.map((room) => (
                     <CarouselItem
                       key={room._id}
-                      className="flex basis-full pl-4 sm:basis-1/2 lg:basis-1/3"
+                      className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
                     >
-                      <RoomCard room={room} openBookingId={bookParam} />
+                      <div className="h-full">
+                        <RoomCard room={room} openBookingId={bookParam} />
+                      </div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-1" />
-                <CarouselNext className="right-1" />
+                <CarouselPrevious className="left-1 h-12 w-12" />
+                <CarouselNext className="right-1 h-12 w-12" />
               </Carousel>
             ) : (
               <div className="text-center py-16">
@@ -516,9 +521,9 @@ function RoomCardSkeleton({ viewMode = 'grid' }: { viewMode?: 'grid' | 'list' })
         </div>
 
         {/* Button skeleton */}
-        <div className="flex gap-2 pt-2">
-          <Skeleton className="h-8 flex-1" />
-          <Skeleton className="h-8 flex-1" />
+        <div className="flex gap-2 pt-4">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 flex-1" />
         </div>
       </div>
     </div>

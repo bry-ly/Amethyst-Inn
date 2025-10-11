@@ -342,46 +342,50 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
     <>
       <Card
         id={`room-${room._id}`}
-        className={`group flex flex-col w-full min-h-[580px] overflow-hidden transition-all duration-500 ${
+        className={`group flex flex-col w-full h-full overflow-hidden transition-all duration-500 ${
           room.isAvailable
             ? "hover:shadow-2xl hover:shadow-primary/10 border-primary/20"
             : "opacity-75 bg-gray-50 dark:bg-[hsl(var(--card))]"
         }`}
       >
         {/* Image Section */}
-        <div className="relative h-48 md:h-56 lg:h-64 xl:h-64 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex-shrink-0">
+        <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex-shrink-0">
           <Image
+            key={`${room._id}-${currentImageIndex}`}
             src={room.images?.[currentImageIndex] || primaryImage}
             alt={`Room ${room.number}`}
             fill
             sizes="(max-width: 1024px) 100vw, 360px"
-            className="object-cover transition-transform duration-700"
+            className="object-cover object-center transition-opacity duration-300"
+            style={{ objectPosition: 'center center' }}
             onError={(e) => {
               e.currentTarget.src = "/placeholder-room.jpg";
             }}
-            loading="lazy"
+            priority={currentImageIndex === 0}
           />
 
           {hasMultipleImages && (
             <>
               <button
                 onClick={prevImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 shadow-lg"
+                aria-label="Previous image"
               >
                 <ArrowRight className="h-4 w-4 rotate-180" />
               </button>
               <button
                 onClick={nextImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 shadow-lg"
+                aria-label="Next image"
               >
                 <ArrowRight className="h-4 w-4" />
               </button>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                 {room.images!.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      index === currentImageIndex ? "bg-white" : "bg-white/50"
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex ? "bg-white scale-110" : "bg-white/50"
                     }`}
                   />
                 ))}
@@ -560,7 +564,7 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 pt-2 flex flex-col flex-1">
+        <CardContent className="px-4 pt-2 pb-0 flex flex-col flex-1">
           <div className="space-y-3 flex-1">
             {/* Description */}
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">
@@ -606,16 +610,16 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-4 ">
+          <div className="flex gap-2 pt-4">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1 h-9">
+                <Button variant="outline" size="sm" className="flex-1 h-10">
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
                 </Button>
               </DialogTrigger>
 
-              <DialogContent>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     Room {room.number} - {formatRoomType(room.type)}
@@ -689,83 +693,6 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                     </div>
                   </div>
 
-                  {/* Availability Timeline with Numeric Countdown */}
-                  {room.nextAvailableDate && availabilityStatus.countdown && (
-                    <div className="border rounded-lg p-4 bg-muted/30">
-                      <div className="flex items-start gap-3">
-                        <Calendar className="h-5 w-5 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-foreground mb-3">Availability Timeline</p>
-                          
-                          {/* Large Numeric Countdown Display */}
-                          <div className="flex items-center justify-center gap-2 mb-4 p-3 bg-background rounded-lg border">
-                            {availabilityStatus.days > 0 && (
-                              <>
-                                <div className="flex flex-col items-center min-w-[50px]">
-                                  <span className="text-3xl font-bold text-primary leading-none">
-                                    {availabilityStatus.days}
-                                  </span>
-                                  <span className="text-[10px] uppercase font-semibold text-muted-foreground mt-1">
-                                    {availabilityStatus.days === 1 ? 'Day' : 'Days'}
-                                  </span>
-                                </div>
-                                <span className="text-2xl text-muted-foreground font-light">:</span>
-                              </>
-                            )}
-                            
-                            {(availabilityStatus.days > 0 || availabilityStatus.hours > 0) && (
-                              <>
-                                <div className="flex flex-col items-center min-w-[50px]">
-                                  <span className="text-3xl font-bold text-primary leading-none">
-                                    {String(availabilityStatus.hours).padStart(2, '0')}
-                                  </span>
-                                  <span className="text-[10px] uppercase font-semibold text-muted-foreground mt-1">
-                                    {availabilityStatus.hours === 1 ? 'Hour' : 'Hours'}
-                                  </span>
-                                </div>
-                                <span className="text-2xl text-muted-foreground font-light">:</span>
-                              </>
-                            )}
-                            
-                            <div className="flex flex-col items-center min-w-[50px]">
-                              <span className="text-3xl font-bold text-primary leading-none">
-                                {String(availabilityStatus.minutes).padStart(2, '0')}
-                              </span>
-                              <span className="text-[10px] uppercase font-semibold text-muted-foreground mt-1">
-                                {availabilityStatus.minutes === 1 ? 'Min' : 'Mins'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-1.5 text-xs text-muted-foreground">
-                            <div className="flex justify-between items-center py-1 border-t">
-                              <span>Next Available:</span>
-                              <span className="font-medium text-foreground text-right">
-                                {new Date(room.nextAvailableDate).toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 border-t">
-                              <span>Last Checked:</span>
-                              <span className="font-medium text-foreground font-mono">
-                                {currentTime.toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  second: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Room Metadata */}
                   {(room.createdAt || room.updatedAt) && (
                     <div className="border-t pt-3 space-y-1 text-xs text-muted-foreground">
@@ -822,7 +749,7 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
 
             {room.isAvailable ? (
               <Button
-                className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium"
+                className="flex-1 h-10 bg-primary hover:bg-primary/90 text-white font-medium"
                 onClick={async () => {
                   // Check session via cookie-aware endpoint, then open sheet or redirect to login
                   const ok = await checkAuthenticated();
@@ -847,7 +774,7 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
               </Button>
             ) : (
               <Button
-                className="flex-1 bg-gray-400 text-gray-600 cursor-not-allowed"
+                className="flex-1 h-10 bg-gray-400 text-gray-600 cursor-not-allowed"
                 disabled
               >
                 Not Available
