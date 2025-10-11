@@ -331,7 +331,18 @@ function BookingDetailsDialog({
                   Identification Document
                 </h3>
                 <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  {/* Show thumbnail if image, otherwise file icon */}
+                  {identificationDocument?.url && (identificationDocument?.mimetype?.startsWith?.('image') || /\.(jpe?g|png|webp|bmp|gif|tiff)$/i.test(identificationDocument?.url || '')) ? (
+                    <button
+                      onClick={() => identificationDocument?.url && window.open(identificationDocument.url, '_blank')}
+                      className="flex-shrink-0 rounded overflow-hidden border border-slate-200 dark:border-slate-800"
+                      aria-label="Open document in new tab"
+                    >
+                      <img src={identificationDocument.url} alt={identificationDocumentName} className="w-12 h-12 object-cover" />
+                    </button>
+                  ) : (
+                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
                       Verification Document Uploaded
