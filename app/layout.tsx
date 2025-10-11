@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import DataPrefetcher from "@/components/common/data-prefetcher";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next"; 
-
+import { Analytics } from "@vercel/analytics/next";
 
 
 const geistSans = Geist({
@@ -49,6 +49,7 @@ export default function RootLayout({
           <DataPrefetcher />
           {children}
           <SpeedInsights />
+          <Analytics />
           <Toaster
             position="top-left"
             richColors
