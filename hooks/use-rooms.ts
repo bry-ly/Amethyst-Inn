@@ -27,6 +27,8 @@ export interface Room {
   isActive?: boolean;
   isAvailable?: boolean;
   activeBookings?: number;
+  nextAvailableDate?: string | null;
+  lastCleaned?: string;
   createdAt?: string;
   updatedAt?: string;
 }

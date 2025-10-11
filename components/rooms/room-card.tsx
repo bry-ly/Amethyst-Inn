@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,8 @@ import {
   Share2,
   Eye,
   ArrowRight,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 
 // Define Room interface locally
@@ -104,6 +106,91 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showBookingSheet, setShowBookingSheet] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute for real-time display
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Calculate real-time availability status with numeric countdown
+  const availabilityStatus = useMemo(() => {
+    if (!room.nextAvailableDate) {
+      return {
+        text: room.isAvailable ? 'Available Now' : 'Not Available',
+        countdown: null,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        color: room.isAvailable ? 'green' : 'red',
+        urgency: room.isAvailable ? 'low' : 'high' as 'low' | 'medium' | 'high'
+      };
+    }
+
+    const now = currentTime;
+    const availableDate = new Date(room.nextAvailableDate);
+    const diffMs = availableDate.getTime() - now.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMs <= 0) {
+      return {
+        text: 'Available Now',
+        countdown: null,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        color: 'green',
+        urgency: 'low' as 'low' | 'medium' | 'high'
+      };
+    }
+
+    const remainingHours = diffHours % 24;
+    const remainingMinutes = diffMinutes % 60;
+
+    let text = 'Available Soon';
+    let color = 'red';
+    let urgency: 'low' | 'medium' | 'high' = 'high';
+
+    if (diffDays === 0) {
+      if (diffHours === 0) {
+        text = 'Available Soon';
+        color = 'yellow';
+        urgency = 'low';
+      } else {
+        text = 'Available Today';
+        color = 'yellow';
+        urgency = 'low';
+      }
+    } else if (diffDays === 1) {
+      text = 'Available Tomorrow';
+      color = 'orange';
+      urgency = 'medium';
+    } else if (diffDays < 7) {
+      text = `Available in ${diffDays} days`;
+      color = 'red';
+      urgency = 'high';
+    } else {
+      text = `Available ${availableDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      color = 'red';
+      urgency = 'high';
+    }
+
+    return {
+      text,
+      countdown: { days: diffDays, hours: remainingHours, minutes: remainingMinutes },
+      days: diffDays,
+      hours: remainingHours,
+      minutes: remainingMinutes,
+      color,
+      urgency
+    };
+  }, [room.isAvailable, room.nextAvailableDate, currentTime]);
 
   // Helper to check if user is authenticated using cookie-aware API
   const checkAuthenticated = React.useCallback(async (): Promise<boolean> => {
@@ -305,66 +392,140 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
           {/* Top Badges */}
           <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
             <div className="flex flex-col gap-2">
-              <Badge className="bg-primary/90 backdrop-blur-sm text-white shadow-lg text-xs font-medium">
+              <Badge 
+                className="bg-primary/90 text-white shadow-lg text-xs font-medium"
+                style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+              >
                 {formatRoomType(room.type)}
               </Badge>
               {room.floor && (
                 <Badge
                   variant="secondary"
-                  className="text-xs bg-secondary backdrop-blur-sm dark:text-primary-foreground"
+                  className="text-xs bg-secondary/90 dark:text-primary-foreground"
+                  style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
                 >
                   <MapPin className="h-3 w-3 mr-1" />
                   Floor {room.floor}
                 </Badge>
               )}
             </div>
-          </div>
 
-          {/* Availability Banner Overlay */}
-          {!room.isAvailable && room.nextAvailableDate && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/90 via-blue-800/80 to-transparent backdrop-blur-sm p-4 pt-8">
-              <div className="flex items-center gap-2 text-white">
-                <Calendar className="h-4 w-4 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">
-                    {formatAvailability(room.nextAvailableDate)}
-                  </p>
-                  <p className="text-xs opacity-90">
-                    {new Date(room.nextAvailableDate).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Status Badge */}
-          <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1.5">
+            {/* Real-Time Availability Status Badge - Top Right */}
             <Badge
               className={`text-xs font-medium shadow-lg whitespace-nowrap ${
-                room.isAvailable
+                availabilityStatus.color === 'green'
                   ? "bg-green-500/90 text-white"
+                  : availabilityStatus.color === 'yellow'
+                  ? "bg-yellow-500/90 text-white"
+                  : availabilityStatus.color === 'orange'
+                  ? "bg-orange-500/90 text-white"
                   : "bg-red-500/90 text-white"
               }`}
+              style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
             >
               {room.isAvailable ? (
                 <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 flex-shrink-0" />
-                  <span>Available</span>
+                  <CheckCircle className="h-3 w-3 flex-shrink-0 animate-pulse" />
+                  <span>Available Now</span>
+                </div>
+              ) : availabilityStatus.urgency === 'low' ? (
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 flex-shrink-0 animate-pulse" />
+                  <span>Soon</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1">
                   <XCircle className="h-3 w-3 flex-shrink-0" />
-                  <span>Unavailable</span>
+                  <span>Occupied</span>
                 </div>
               )}
             </Badge>
           </div>
+
+          {/* Real-Time Availability Banner Overlay with Numeric Countdown */}
+          {!room.isAvailable && room.nextAvailableDate && availabilityStatus.countdown && (
+            <div 
+              className={`absolute bottom-0 left-0 right-0 ${
+                availabilityStatus.color === 'yellow' 
+                  ? 'bg-yellow-600/80' 
+                  : availabilityStatus.color === 'orange'
+                  ? 'bg-orange-600/80'
+                  : 'bg-red-600/0'
+              }`}
+              style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+            >
+              <div className="flex items-center justify-between px-3 py-2.5 text-white">
+                {/* Left Side - Calendar Icon & Date Text */}
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 flex-shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold leading-tight">
+                      {availabilityStatus.text}
+                    </span>
+                    <span className="text-[10px] opacity-80 leading-tight">
+                      {new Date(room.nextAvailableDate).toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Right Side - Numeric Countdown Timer */}
+                <div className="flex items-center gap-1.5">
+                  {/* Days */}
+                  {availabilityStatus.days > 0 && (
+                    <>
+                      <div 
+                        className="flex flex-col items-center bg-white/25 rounded px-2 py-1 min-w-[32px] shadow-sm"
+                        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                      >
+                        <span className="text-base font-bold leading-none tabular-nums">{availabilityStatus.days}</span>
+                        <span className="text-[8px] uppercase font-semibold opacity-90 leading-tight mt-0.5">
+                          {availabilityStatus.days === 1 ? 'DAY' : 'DAYS'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold opacity-60">:</span>
+                    </>
+                  )}
+                  
+                  {/* Hours */}
+                  {(availabilityStatus.days > 0 || availabilityStatus.hours > 0) && (
+                    <>
+                      <div 
+                        className="flex flex-col items-center bg-white/25 rounded px-2 py-1 min-w-[32px] shadow-sm"
+                        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                      >
+                        <span className="text-base font-bold leading-none tabular-nums">
+                          {String(availabilityStatus.hours).padStart(2, '0')}
+                        </span>
+                        <span className="text-[8px] uppercase font-semibold opacity-90 leading-tight mt-0.5">
+                          {availabilityStatus.hours === 1 ? 'HOUR' : 'HOURS'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold opacity-60">:</span>
+                    </>
+                  )}
+                  
+                  {/* Minutes */}
+                  <div 
+                    className="flex flex-col items-center bg-white/25 rounded px-2 py-1 min-w-[32px] shadow-sm"
+                    style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                  >
+                    <span className="text-base font-bold leading-none tabular-nums">
+                      {String(availabilityStatus.minutes).padStart(2, '0')}
+                    </span>
+                    <span className="text-[8px] uppercase font-semibold opacity-90 leading-tight mt-0.5">
+                      {availabilityStatus.minutes === 1 ? 'MIN' : 'MINS'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Content Section */}
@@ -459,6 +620,31 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                   <DialogTitle>
                     Room {room.number} - {formatRoomType(room.type)}
                   </DialogTitle>
+                  <DialogDescription>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge
+                        className={`text-xs ${
+                          availabilityStatus.color === 'green'
+                            ? 'bg-green-500 text-white'
+                            : availabilityStatus.color === 'yellow'
+                            ? 'bg-yellow-500 text-white'
+                            : availabilityStatus.color === 'orange'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-red-500 text-white'
+                        }`}
+                      >
+                        {availabilityStatus.text}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Updated: {currentTime.toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
@@ -481,17 +667,147 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
                       "A comfortable and well-appointed room designed for your relaxation and convenience."}
                   </DialogDescription>
 
+                  {/* Room Details with Timestamps */}
+                  <div className="grid grid-cols-2 gap-3 text-sm border-t pt-3">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Capacity</p>
+                      <p className="font-semibold">{totalCapacity} guests</p>
+                    </div>
+                    {room.size && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Size</p>
+                        <p className="font-semibold">{room.size} sqm</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-muted-foreground text-xs">Price</p>
+                      <p className="font-semibold">₱{room.pricePerNight.toLocaleString()}/night</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Status</p>
+                      <p className="font-semibold capitalize">{room.status}</p>
+                    </div>
+                  </div>
+
+                  {/* Availability Timeline with Numeric Countdown */}
+                  {room.nextAvailableDate && availabilityStatus.countdown && (
+                    <div className="border rounded-lg p-4 bg-muted/30">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="h-5 w-5 text-primary mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-foreground mb-3">Availability Timeline</p>
+                          
+                          {/* Large Numeric Countdown Display */}
+                          <div className="flex items-center justify-center gap-2 mb-4 p-3 bg-background rounded-lg border">
+                            {availabilityStatus.days > 0 && (
+                              <>
+                                <div className="flex flex-col items-center min-w-[50px]">
+                                  <span className="text-3xl font-bold text-primary leading-none">
+                                    {availabilityStatus.days}
+                                  </span>
+                                  <span className="text-[10px] uppercase font-semibold text-muted-foreground mt-1">
+                                    {availabilityStatus.days === 1 ? 'Day' : 'Days'}
+                                  </span>
+                                </div>
+                                <span className="text-2xl text-muted-foreground font-light">:</span>
+                              </>
+                            )}
+                            
+                            {(availabilityStatus.days > 0 || availabilityStatus.hours > 0) && (
+                              <>
+                                <div className="flex flex-col items-center min-w-[50px]">
+                                  <span className="text-3xl font-bold text-primary leading-none">
+                                    {String(availabilityStatus.hours).padStart(2, '0')}
+                                  </span>
+                                  <span className="text-[10px] uppercase font-semibold text-muted-foreground mt-1">
+                                    {availabilityStatus.hours === 1 ? 'Hour' : 'Hours'}
+                                  </span>
+                                </div>
+                                <span className="text-2xl text-muted-foreground font-light">:</span>
+                              </>
+                            )}
+                            
+                            <div className="flex flex-col items-center min-w-[50px]">
+                              <span className="text-3xl font-bold text-primary leading-none">
+                                {String(availabilityStatus.minutes).padStart(2, '0')}
+                              </span>
+                              <span className="text-[10px] uppercase font-semibold text-muted-foreground mt-1">
+                                {availabilityStatus.minutes === 1 ? 'Min' : 'Mins'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1.5 text-xs text-muted-foreground">
+                            <div className="flex justify-between items-center py-1 border-t">
+                              <span>Next Available:</span>
+                              <span className="font-medium text-foreground text-right">
+                                {new Date(room.nextAvailableDate).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-t">
+                              <span>Last Checked:</span>
+                              <span className="font-medium text-foreground font-mono">
+                                {currentTime.toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Room Metadata */}
+                  {(room.createdAt || room.updatedAt) && (
+                    <div className="border-t pt-3 space-y-1 text-xs text-muted-foreground">
+                      {room.createdAt && (
+                        <div className="flex justify-between">
+                          <span>Room Added:</span>
+                          <span>{new Date(room.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}</span>
+                        </div>
+                      )}
+                      {room.updatedAt && (
+                        <div className="flex justify-between">
+                          <span>Last Updated:</span>
+                          <span>{new Date(room.updatedAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {(room.amenities || []).length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {(room.amenities || []).map((amenity: string) => (
-                        <Badge
-                          key={amenity}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {amenity}
-                        </Badge>
-                      ))}
+                    <div className="border-t pt-3">
+                      <p className="text-sm font-semibold mb-2">Amenities</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(room.amenities || []).map((amenity: string) => (
+                          <Badge
+                            key={amenity}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {amenity}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
