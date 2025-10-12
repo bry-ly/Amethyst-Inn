@@ -4,9 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const authHeader = request.headers.get('authorization');
     
@@ -17,7 +18,7 @@ export async function PUT(
       );
     }
     
-    const response = await fetch(`${BACKEND_URL}/api/feedback/${params.id}/approve`, {
+    const response = await fetch(`${BACKEND_URL}/api/feedback/${id}/approve`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
