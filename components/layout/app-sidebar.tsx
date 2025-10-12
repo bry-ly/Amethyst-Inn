@@ -144,14 +144,9 @@ const data = {
       icon: IconReport,
     },
     {
-      name: "Payments Receipt",
-      url: "#",
+      name: "Payments & Receipts",
+      url: "/payments",
       icon: IconReceipt,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
     },
   ],
 }
