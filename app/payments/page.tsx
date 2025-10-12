@@ -10,11 +10,6 @@ import { AuthTokenManager } from "@/utils/cookies"
 import { toast } from "sonner"
 import { PageLoader } from "@/components/common/loading-spinner"
 
-export const metadata = {
-  title: "Payments - Amethyst Inn",
-  description: "Manage payment transactions and refunds",
-}
-
 export default function PaymentsPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
