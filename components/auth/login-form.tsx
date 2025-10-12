@@ -1,6 +1,7 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +26,7 @@ export function LoginForm({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
+  const debouncedEmail = useDebounce(email, 500)
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -34,6 +36,20 @@ export function LoginForm({
   
   // Only require Turnstile in production
   const isProduction = process.env.NODE_ENV === "production"
+
+  // Validate email with debounce
+  useEffect(() => {
+    if (!debouncedEmail) {
+      setEmailError(null)
+      return
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(debouncedEmail)) {
+      setEmailError('Please enter a valid email address')
+    } else {
+      setEmailError(null)
+    }
+  }, [debouncedEmail])
 
   // Memoize callbacks to prevent Turnstile re-renders
   const handleTurnstileSuccess = useCallback((token: string) => {

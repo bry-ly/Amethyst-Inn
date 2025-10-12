@@ -26,6 +26,7 @@ import {
   MapPin
 } from "lucide-react";
 import { useRooms } from "@/hooks/use-rooms";
+import { useDebounce } from "@/hooks/use-debounce";
 import useEmblaCarousel from "embla-carousel-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -43,6 +44,7 @@ export function RoomsSection() {
   const searchParams = useSearchParams()
   const bookParam = searchParams ? searchParams.get('book') : null
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [selectedType, setSelectedType] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [showUnavailable, setShowUnavailable] = useState(true);
@@ -59,8 +61,8 @@ export function RoomsSection() {
     };
 
     // Search filter
-    if (searchTerm.trim()) {
-      filters.search = searchTerm.trim();
+    if (debouncedSearchTerm.trim()) {
+      filters.search = debouncedSearchTerm.trim();
     }
 
     // Type filter
@@ -90,7 +92,7 @@ export function RoomsSection() {
     }
 
     return filters;
-  }, [searchTerm, selectedType, priceRange, showUnavailable, sortBy]);
+  }, [debouncedSearchTerm, selectedType, priceRange, showUnavailable, sortBy]);
 
   // Get active filter count
   const activeFilterCount = useMemo(() => {

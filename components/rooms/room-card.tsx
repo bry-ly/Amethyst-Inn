@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookingSheet } from "@/components/booking/booking-sheet";
 import { useRouter } from "next/navigation";
+import { useAuthCheck } from "@/hooks/use-auth-check";
 import {
   Dialog,
   DialogTrigger,
@@ -192,21 +193,8 @@ export function RoomCard({ room, openBookingId }: RoomCardProps) {
     };
   }, [room.isAvailable, room.nextAvailableDate, currentTime]);
 
-  // Helper to check if user is authenticated using cookie-aware API
-  const checkAuthenticated = React.useCallback(async (): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/me', {
-        method: 'GET',
-        credentials: 'same-origin',
-        cache: 'no-store',
-      });
-      if (!res.ok) return false;
-      const data = await res.json().catch(() => null);
-      return Boolean(data && (data._id || data.id || data.email));
-    } catch (_e) {
-      return false;
-    }
-  }, []);
+  // Use cached auth check hook to prevent multiple simultaneous API calls
+  const { checkAuth: checkAuthenticated } = useAuthCheck();
 
   const amenityIcons: { [key: string]: React.ReactNode } = {
     WiFi: <Wifi className="h-4 w-4" />,

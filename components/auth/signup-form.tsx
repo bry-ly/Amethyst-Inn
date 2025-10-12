@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,10 +20,14 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const [name, setName] = useState("")
+  const debouncedName = useDebounce(name, 400)
   const [email, setEmail] = useState("")
+  const debouncedEmail = useDebounce(email, 500)
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const debouncedPassword = useDebounce(password, 400)
   const [confirmPassword, setConfirmPassword] = useState("")
+  const debouncedConfirmPassword = useDebounce(confirmPassword, 400)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -95,23 +100,26 @@ export function SignupForm({
     return true
   }
 
-  // Run banned word check on every name change
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setName(value)
-    if (!value.trim()) {
+  // Validate name with debounce
+  useEffect(() => {
+    if (!debouncedName) {
+      setNameError(null)
+      return
+    }
+    
+    if (!debouncedName.trim()) {
       setNameError('Name is required')
       return
     }
     
     // Check with bad-words library (catches common profanity)
-    if (profanityFilter.isProfane(value)) {
+    if (profanityFilter.isProfane(debouncedName)) {
       setNameError('Name contains inappropriate words')
       return
     }
     
     // Also check against normalized custom banned words
-    const norm = normalizeForCheck(value)
+    const norm = normalizeForCheck(debouncedName)
     for (const bw of bannedWords) {
       if (!bw) continue
       if (norm.includes(bw)) {
@@ -121,25 +129,57 @@ export function SignupForm({
     }
     
     setNameError(null)
-  }
+  }, [debouncedName, profanityFilter, bannedWords])
 
-  // Validate email on change
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setEmail(value)
+  // Validate email with debounce
+  useEffect(() => {
+    if (!debouncedEmail) {
+      setEmailError(null)
+      return
+    }
     
-    if (!value.trim()) {
+    if (!debouncedEmail.trim()) {
       setEmailError('Email is required')
       return
     }
     
-    if (!validateEmail(value)) {
+    if (!validateEmail(debouncedEmail)) {
       setEmailError('Please enter a valid email address')
       return
     }
     
     setEmailError(null)
-  }
+  }, [debouncedEmail])
+
+  // Validate password strength with debounce
+  useEffect(() => {
+    if (!debouncedPassword) {
+      setPasswordError(null)
+      return
+    }
+    
+    if (debouncedPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters long')
+      return
+    }
+    
+    setPasswordError(null)
+  }, [debouncedPassword])
+
+  // Validate password match with debounce
+  useEffect(() => {
+    if (!debouncedConfirmPassword) {
+      setConfirmError(null)
+      return
+    }
+    
+    if (debouncedPassword !== debouncedConfirmPassword) {
+      setConfirmError('Passwords do not match')
+      return
+    }
+    
+    setConfirmError(null)
+  }, [debouncedPassword, debouncedConfirmPassword])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -189,7 +229,7 @@ export function SignupForm({
         throw new Error(data?.message || data?.error || "Signup failed")
       }
       toast.success("Account created successfully! Please login to continue.")
-      router.push('/login?force=1')
+      router.push('/login')
     } catch (err: any) {
       toast.error(err?.message || "Signup failed")
     } finally {
@@ -217,7 +257,7 @@ export function SignupForm({
                   required
                   autoComplete="name"
                   value={name}
-                  onChange={handleNameChange}
+                  onChange={(e) => setName(e.target.value)}
                   disabled={loading}
                 />
                 {nameError && <p className="text-sm text-red-600 mt-1">{nameError}</p>}
@@ -232,7 +272,7 @@ export function SignupForm({
                   required
                   autoComplete="email"
                   value={email}
-                  onChange={handleEmailChange}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                 />
                 {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}
@@ -260,7 +300,7 @@ export function SignupForm({
                     required
                     autoComplete="new-password"
                     value={password}
-                    onChange={(e) => { setPassword(e.target.value); if (passwordError) setPasswordError(null); if (confirmError) setConfirmError(null); }}
+                    onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                   />
                   <button
@@ -284,7 +324,7 @@ export function SignupForm({
                     required
                     autoComplete="new-password"
                     value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); if (confirmError) setConfirmError(null); }}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={loading}
                   />
                   <button
@@ -309,7 +349,7 @@ export function SignupForm({
             </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
-              <Link href="/login" className="underline underline-offset-4">
+              <Link href="/login?force=true" className="underline underline-offset-4">
                 Sign In
               </Link>
             </div>

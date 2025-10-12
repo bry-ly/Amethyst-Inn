@@ -8,12 +8,15 @@ import {
   IconSettings,
   IconDiamond,
   IconHome,
-  IconMessageCircle,
-  IconHistory,
+  IconBed,
+  IconBook,
+  IconChartBar,
 } from "@tabler/icons-react"
-import { usePathname } from "next/navigation"
 
 import { NavUser } from "@/components/layout/nav-user"
+import { NavUserMain } from "@/components/layout/nav-user-main"
+import { NavUserDocuments } from "@/components/layout/nav-user-documents"
+import { NavUserSecondary } from "@/components/layout/nav-user-secondary"
 
 import {
   Sidebar,
@@ -23,9 +26,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
 } from "@/components/ui/sidebar"
 
 interface UserSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -36,10 +36,13 @@ interface UserSidebarProps extends React.ComponentProps<typeof Sidebar> {
   }
 }
 
-export function UserSidebar({ user, ...props }: UserSidebarProps) {
-  const pathname = usePathname()
-
-  const navItems = [
+const data = {
+  user: {
+    name: "Guest User",
+    email: "guest@amethystinn.com",
+    avatar: "/avatars/default.jpg",
+  },
+  navMain: [
     {
       title: "Home",
       url: "/",
@@ -52,29 +55,42 @@ export function UserSidebar({ user, ...props }: UserSidebarProps) {
     },
     {
       title: "My Bookings",
-      url: "/profile?tab=bookings",
+      url: "/profile/bookings",
       icon: IconCalendar,
     },
     {
-      title: "Booking History",
-      url: "/profile?tab=history",
-      icon: IconHistory,
-    },
-    {
       title: "My Feedback",
-      url: "/profile?tab=feedback",
+      url: "/profile/feedback",
       icon: IconStar,
     },
-  ]
-
-  const secondaryItems = [
+  ],
+  documents: [
+    {
+      name: "My Statistics",
+      url: "/profile/statistics",
+      icon: IconChartBar,
+    },
+    {
+      name: "Browse Rooms",
+      url: "/#rooms",
+      icon: IconBed,
+    },
+    {
+      name: "Testimonials",
+      url: "/testimonials",
+      icon: IconBook,
+    },
+  ],
+  navSecondary: [
     {
       title: "Settings",
-      url: "/profile?tab=settings",
+      url: "/profile/settings",
       icon: IconSettings,
     },
-  ]
+  ],
+}
 
+export function UserSidebar({ user, ...props }: UserSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -94,64 +110,13 @@ export function UserSidebar({ user, ...props }: UserSidebarProps) {
       </SidebarHeader>
       
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.url || 
-                  (item.url.includes('?') && pathname === item.url.split('?')[0])
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                    >
-                      <a href={item.url}>
-                        <Icon className="!size-4" />
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondaryItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.url || 
-                  (item.url.includes('?') && pathname === item.url.split('?')[0])
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                    >
-                      <a href={item.url}>
-                        <Icon className="!size-4" />
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <NavUserMain items={data.navMain} />
+        <NavUserDocuments items={data.documents} />
+        <NavUserSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       
       <SidebarFooter>
-        {user && <NavUser user={{ ...user, avatar: user.avatar || "/avatars/default.jpg" }} />}
+        <NavUser user={user ? { ...user, avatar: user.avatar || "/avatars/default.jpg" } : data.user} />
       </SidebarFooter>
     </Sidebar>
   )

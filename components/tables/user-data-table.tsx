@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -247,6 +248,7 @@ export function UserDataTable({ data, canManage = false, onDataChanged }: { data
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
   const [globalFilter, setGlobalFilter] = React.useState("")
+  const debouncedGlobalFilter = useDebounce(globalFilter, 300)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [confirmingUser, setConfirmingUser] = React.useState<User | null>(null)
   const [editingUser, setEditingUser] = React.useState<User | null>(null)
@@ -344,7 +346,7 @@ export function UserDataTable({ data, canManage = false, onDataChanged }: { data
   const table = useReactTable({
     data: rows,
     columns,
-    state: { sorting, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnVisibility, rowSelection, pagination, globalFilter: debouncedGlobalFilter },
     getRowId: (row) => row._id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
