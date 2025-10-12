@@ -4,9 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -16,7 +17,7 @@ export async function GET(
       headers['Authorization'] = authHeader;
     }
     
-    const response = await fetch(`${BACKEND_URL}/api/feedback/${params.id}`, {
+    const response = await fetch(`${BACKEND_URL}/api/feedback/${id}`, {
       method: 'GET',
       headers,
       cache: 'no-store',
@@ -36,9 +37,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const authHeader = request.headers.get('authorization');
     
@@ -49,7 +51,7 @@ export async function PUT(
       );
     }
     
-    const response = await fetch(`${BACKEND_URL}/api/feedback/${params.id}`, {
+    const response = await fetch(`${BACKEND_URL}/api/feedback/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -72,9 +74,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     
     if (!authHeader) {
@@ -84,7 +87,7 @@ export async function DELETE(
       );
     }
     
-    const response = await fetch(`${BACKEND_URL}/api/feedback/${params.id}`, {
+    const response = await fetch(`${BACKEND_URL}/api/feedback/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
