@@ -24,8 +24,10 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { toast } from "sonner";
 import { AuthTokenManager } from "@/utils/cookies";
+import { FeedbackSection } from "./feedback-section";
 import { 
   Calendar,
   MapPin,
@@ -40,6 +42,7 @@ import {
   TrendingUp,
   DollarSign,
   CalendarDays,
+  Star,
 } from "lucide-react";
 
 type UserProfile = {
@@ -782,23 +785,63 @@ export function UserProfileDashboard({
         </div>
       )}
 
-      {/* Bookings Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold">Your Bookings</h3>
-          <Button variant="outline" size="sm" onClick={loadBookings} disabled={loadingBookings}>
-            <CalendarDays className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-        <BookingsList
-          bookings={bookings}
-          loading={loadingBookings}
-          onCancel={handleCancelBooking}
-          onDelete={handleDeleteBooking}
-          actionLoading={actionLoading}
-        />
-      </div>
+      {/* Tabs Section */}
+      <Tabs defaultValue="bookings" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Bookings
+          </TabsTrigger>
+          <TabsTrigger value="stats" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Statistics
+          </TabsTrigger>
+          <TabsTrigger value="feedback" className="flex items-center gap-2">
+            <Star className="h-4 w-4" />
+            Feedback
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bookings" className="space-y-4 mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold">Your Bookings</h3>
+            <Button variant="outline" size="sm" onClick={loadBookings} disabled={loadingBookings}>
+              <CalendarDays className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+          <BookingsList
+            bookings={bookings}
+            loading={loadingBookings}
+            onCancel={handleCancelBooking}
+            onDelete={handleDeleteBooking}
+            actionLoading={actionLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="stats" className="space-y-4 mt-6">
+          {bookings.length > 0 ? (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Booking Statistics</h3>
+              <BookingStats bookings={bookings} />
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium">No statistics available</p>
+                <p className="text-sm text-muted-foreground">
+                  Book a room to see your statistics
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="feedback" className="mt-6">
+          <FeedbackSection userId={user?._id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

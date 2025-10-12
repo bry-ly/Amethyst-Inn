@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { IconEye, IconEyeOff, IconLoader } from "@tabler/icons-react"
 import { toast } from "sonner"
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
+import { Filter } from 'bad-words'
+import type { BannedWordsResponse, RegisterResponse } from '@/types/auth'
 
 export function SignupForm({
   className,
@@ -30,10 +32,20 @@ export function SignupForm({
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
 
+  // Initialize bad-words filter with custom banned words list
+  const profanityFilter = useMemo(() => {
+    const filter = new Filter()
+    // Add custom banned words when they're loaded
+    if (bannedWords.length > 0) {
+      filter.addWords(...bannedWords)
+    }
+    return filter
+  }, [bannedWords])
+
   useEffect(() => {
     let mounted = true
     fetch('/api/config/banned-words')
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<BannedWordsResponse>)
       .then((j) => {
         if (!mounted) return
         if (j?.success && j.data) {
@@ -56,31 +68,86 @@ export function SignupForm({
     return s
   }
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    // prevent duplicate submissions while a request is in-flight
-    if (loading) return
-    setLoading(true)
+  // Validate email with stricter regex
+  const validateEmail = (email: string): boolean => {
+    // RFC 5322 compliant email regex (simplified but strict)
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
     
-    try {
-      // Validation
-      if (!name.trim()) {
-        setNameError('Name is required')
-        setLoading(false)
+    if (!emailRegex.test(email)) return false
+    
+    // Additional checks
+    const [localPart, domain] = email.split('@')
+    
+    // Local part checks
+    if (!localPart || localPart.length > 64) return false
+    if (localPart.startsWith('.') || localPart.endsWith('.')) return false
+    if (localPart.includes('..')) return false
+    
+    // Domain checks
+    if (!domain || domain.length > 255) return false
+    if (domain.startsWith('-') || domain.endsWith('-')) return false
+    if (domain.startsWith('.') || domain.endsWith('.')) return false
+    
+    // Must have valid TLD (at least 2 chars)
+    const tld = domain.split('.').pop()
+    if (!tld || tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) return false
+    
+    return true
+  }
+
+  // Run banned word check on every name change
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setName(value)
+    if (!value.trim()) {
+      setNameError('Name is required')
+      return
+    }
+    
+    // Check with bad-words library (catches common profanity)
+    if (profanityFilter.isProfane(value)) {
+      setNameError('Name contains inappropriate words')
+      return
+    }
+    
+    // Also check against normalized custom banned words
+    const norm = normalizeForCheck(value)
+    for (const bw of bannedWords) {
+      if (!bw) continue
+      if (norm.includes(bw)) {
+        setNameError('Name contains inappropriate words')
         return
       }
-      // client-side banned words check
-      const norm = normalizeForCheck(name)
-      for (const bw of bannedWords) {
-        if (!bw) continue
-        if (norm.includes(bw)) {
-          setNameError('Name contains inappropriate words')
-          setLoading(false)
-          return
-        }
-      }
-      // clear any name error
-      setNameError(null)
+    }
+    
+    setNameError(null)
+  }
+
+  // Validate email on change
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    
+    if (!value.trim()) {
+      setEmailError('Email is required')
+      return
+    }
+    
+    if (!validateEmail(value)) {
+      setEmailError('Please enter a valid email address')
+      return
+    }
+    
+    setEmailError(null)
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (loading) return
+    // Block submit if any validation errors are present
+    if (nameError || emailError) return
+    setLoading(true)
+    try {
       // clear previous form errors
       setEmailError(null)
       setPasswordError(null)
@@ -91,7 +158,7 @@ export function SignupForm({
         setLoading(false)
         return
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!validateEmail(email)) {
         setEmailError('Please enter a valid email address')
         setLoading(false)
         return
@@ -111,20 +178,18 @@ export function SignupForm({
         setLoading(false)
         return
       }
-      
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name, email, password, phone }),
       })
-      const data = await res.json()
+      const data = await res.json() as RegisterResponse
       if (!res.ok) {
         throw new Error(data?.message || data?.error || "Signup failed")
       }
-  toast.success("Account created successfully! Please login to continue.")
-  // Use Next.js router to navigate to login within the app
-  // Append ?force=1 so middleware won't redirect authenticated users away from the auth page
-  router.push('/login?force=1')
+      toast.success("Account created successfully! Please login to continue.")
+      router.push('/login?force=1')
     } catch (err: any) {
       toast.error(err?.message || "Signup failed")
     } finally {
@@ -152,7 +217,7 @@ export function SignupForm({
                   required
                   autoComplete="name"
                   value={name}
-                  onChange={(e) => { setName(e.target.value); if (nameError) setNameError(null); }}
+                  onChange={handleNameChange}
                   disabled={loading}
                 />
                 {nameError && <p className="text-sm text-red-600 mt-1">{nameError}</p>}
@@ -167,7 +232,7 @@ export function SignupForm({
                   required
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
+                  onChange={handleEmailChange}
                   disabled={loading}
                 />
                 {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}

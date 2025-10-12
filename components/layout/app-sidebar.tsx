@@ -80,7 +80,11 @@ const data = {
       url: "/payments",
       icon: IconCurrencyPeso,
     },
-    
+    {
+      title: "Feedback Management",
+      url: "/admin/feedback",
+      icon: IconReport,
+    },
   ],
   navClouds: [
     {

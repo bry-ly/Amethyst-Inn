@@ -92,7 +92,7 @@ export default function HeaderSection({
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
           </Link>
           <Link
-            href="/#testimonials"
+            href="/testimonials"
             className="relative text-sm font-medium transition-colors hover:text-primary group"
           >
             Testimonials
@@ -243,7 +243,7 @@ export default function HeaderSection({
               Rooms
             </Link>
             <Link
-              href="/#testimonials"
+              href="/testimonials"
               className="block py-2 text-sm font-medium transition-colors hover:text-primary hover:underline"
               onClick={onCloseMobileMenu}
             >
