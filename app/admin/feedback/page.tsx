@@ -60,7 +60,13 @@ export default function AdminFeedbackPage() {
   async function fetchFeedback(token?: string) {
     try {
       const authToken = token || AuthTokenManager.getToken();
-      if (!authToken) return;
+      if (!authToken) {
+        console.error("No auth token available");
+        return;
+      }
+      
+      console.log("Fetching feedback with token:", authToken ? "present" : "missing");
+      
       // Use internal API route so the httpOnly auth cookie (if present) is included
       const res = await fetch("/api/feedback", {
         headers: { authorization: `Bearer ${authToken}` },
@@ -68,14 +74,21 @@ export default function AdminFeedbackPage() {
         credentials: "same-origin",
       });
 
+      console.log("Feedback response status:", res.status);
+
       if (!res.ok) {
-        console.error("Failed to fetch feedback:", res.status);
-        toast.error("Failed to load feedback");
+        const errorText = await res.text();
+        console.error("Failed to fetch feedback:", res.status, errorText);
+        toast.error(`Failed to load feedback: ${res.status}`);
         return;
       }
 
       const data = await res.json();
+      console.log("Feedback response data:", data);
+      
       const feedbackData = Array.isArray(data) ? data : data?.data || data?.feedbacks || [];
+      console.log("Parsed feedback data:", feedbackData.length, "items");
+      
       setFeedbacks(feedbackData);
     } catch (error) {
       console.error("Error fetching feedback:", error);
