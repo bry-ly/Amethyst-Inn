@@ -88,7 +88,7 @@ export const paymentSchema = z.object({
   ]),
   amount: z.number(),
   currency: z.string().optional().default("PHP"),
-  paymentMethod: z.enum(["cash", "card", "online", "stripe"]),
+  paymentMethod: z.enum(["cash", "card", "stripe", "paypal", "bank_transfer"]),
   status: z.enum(["pending", "processing", "succeeded", "failed", "refunded", "cancelled"]),
   stripePaymentIntentId: z.string().optional(),
   stripeCustomerId: z.string().optional(),

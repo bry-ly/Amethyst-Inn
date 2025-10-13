@@ -18,6 +18,21 @@ export default function PaymentsPage() {
   useEffect(() => {
     document.title = "Amethyst Inn - Payments";
     checkAuthAndLoad()
+    
+    // Re-check auth when user navigates back to this page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkAuthAndLoad()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', () => checkAuthAndLoad())
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', checkAuthAndLoad)
+    }
   }, [])
 
   async function checkAuthAndLoad() {
