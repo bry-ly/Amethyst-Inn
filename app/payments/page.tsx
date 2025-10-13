@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -10,10 +10,22 @@ import { AuthTokenManager } from "@/utils/cookies"
 import { toast } from "sonner"
 import { PageLoader } from "@/components/common/loading-spinner"
 
-export default function PaymentsPage() {
+function PaymentsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState(false)
+
+  // Get URL parameters
+  const paymentId = searchParams.get('id')
+  const status = searchParams.get('status')
+  const method = searchParams.get('method')
+  const bookingId = searchParams.get('bookingId')
+  const guestId = searchParams.get('guestId')
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
+  const page = searchParams.get('page')
+  const limit = searchParams.get('limit')
 
   useEffect(() => {
     document.title = "Amethyst Inn - Payments";
@@ -33,7 +45,7 @@ export default function PaymentsPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', checkAuthAndLoad)
     }
-  }, [])
+  }, [paymentId, status, method, bookingId, guestId, startDate, endDate, page, limit])
 
   async function checkAuthAndLoad() {
     try {
@@ -91,5 +103,13 @@ export default function PaymentsPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<PageLoader message="Loading payments..." />}>
+      <PaymentsContent />
+    </Suspense>
   );
 }

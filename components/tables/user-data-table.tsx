@@ -68,7 +68,7 @@ export const userSchema = z.object({
   _id: z.string(),
   name: z.string(),
   email: z.string().email(),
-  role: z.enum(["user", "admin", "staff", "manager"]),
+  role: z.enum(["guest", "admin", "staff", "manager"]),
   isActive: z.boolean().optional().default(true),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -244,7 +244,17 @@ export function UserDataTable({ data, canManage = false, onDataChanged }: { data
   const safeData = Array.isArray(data) ? data : []
   const [rows, setRows] = React.useState<User[]>(safeData)
   const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  
+  // Load column visibility from localStorage on mount
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    try {
+      const saved = localStorage.getItem('user-table-column-visibility')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+  
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
   const [globalFilter, setGlobalFilter] = React.useState("")
@@ -263,6 +273,15 @@ export function UserDataTable({ data, canManage = false, onDataChanged }: { data
   React.useEffect(() => {
     setRows(safeData)
   }, [safeData])
+  
+  // Save column visibility to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('user-table-column-visibility', JSON.stringify(columnVisibility))
+    } catch (error) {
+      console.error('Failed to save column visibility:', error)
+    }
+  }, [columnVisibility])
 
   const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}))
   const dataIds = React.useMemo<UniqueIdentifier[]>(() => rows.map(r => r._id).filter(Boolean), [rows])

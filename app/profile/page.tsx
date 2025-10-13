@@ -1,14 +1,21 @@
 "use client"
-import React from 'react'
+import React, { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { UserSidebar } from '@/components/layout/user-sidebar'
 import { UserSiteHeaderWrapper } from '@/components/layout/user-site-header-wrapper'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { UserProfileDashboard } from '@/components/dashboard/user-profile-dashboard-clean'
 
-export default function ProfilePage() {
+function ProfileContent() {
+  const searchParams = useSearchParams()
+  
+  // Get URL parameters
+  const tab = searchParams.get('tab') // e.g., 'overview', 'bookings', 'settings'
+  const edit = searchParams.get('edit') // e.g., 'true' for edit mode
+  
   React.useEffect(() => {
     document.title = "Amethyst Inn - Profile";
-  }, []);
+  }, [tab, edit]);
 
   return (
     <div className="h-screen">
@@ -31,5 +38,17 @@ export default function ProfilePage() {
         </SidebarInset>
       </SidebarProvider>
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse">Loading profile...</div>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   )
 }

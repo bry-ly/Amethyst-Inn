@@ -534,12 +534,31 @@ function BookingDataTable() {
   }, [data]);
 
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  
+  // Load column visibility from localStorage on mount
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    try {
+      const saved = localStorage.getItem('booking-table-column-visibility')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  });
+  
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const [selectedBooking, setSelectedBooking] = React.useState<Booking | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  
+  // Save column visibility to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('booking-table-column-visibility', JSON.stringify(columnVisibility))
+    } catch (error) {
+      console.error('Failed to save column visibility:', error)
+    }
+  }, [columnVisibility]);
 
   const handleViewDetails = React.useCallback((booking: Booking) => {
     setSelectedBooking(booking);

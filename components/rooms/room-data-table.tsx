@@ -268,9 +268,22 @@ export function RoomDataTable({ data, onRoomAdded }: { data: Room[]; onRoomAdded
   const safeData = Array.isArray(data) ? data : []
   const [rows, setRows] = React.useState<Room[]>(safeData)
   const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  
+  // Load column visibility from localStorage on mount
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    try {
+      const saved = localStorage.getItem('room-table-column-visibility')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+  
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
+  const [globalFilter, setGlobalFilter] = React.useState("")
+  const [typeFilter, setTypeFilter] = React.useState<string>("all")
+  const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [confirmingRoom, setConfirmingRoom] = React.useState<Room | null>(null)
   const [editingRoom, setEditingRoom] = React.useState<Room | null>(null)
@@ -287,9 +300,46 @@ export function RoomDataTable({ data, onRoomAdded }: { data: Room[]; onRoomAdded
   React.useEffect(() => {
     setRows(safeData)
   }, [safeData])
+  
+  // Save column visibility to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('room-table-column-visibility', JSON.stringify(columnVisibility))
+    } catch (error) {
+      console.error('Failed to save column visibility:', error)
+    }
+  }, [columnVisibility])
 
   const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}))
-  const dataIds = React.useMemo<UniqueIdentifier[]>(() => rows.map(r => r._id).filter(Boolean), [rows])
+  
+  // Apply filters to rows
+  const filteredRows = React.useMemo(() => {
+    let filtered = rows
+    
+    // Global search filter (room number, type)
+    if (globalFilter) {
+      const search = globalFilter.toLowerCase()
+      filtered = filtered.filter(room => 
+        room.number?.toLowerCase().includes(search) ||
+        room.type?.toLowerCase().includes(search) ||
+        room.status?.toLowerCase().includes(search)
+      )
+    }
+    
+    // Type filter
+    if (typeFilter && typeFilter !== "all") {
+      filtered = filtered.filter(room => room.type === typeFilter)
+    }
+    
+    // Status filter
+    if (statusFilter && statusFilter !== "all") {
+      filtered = filtered.filter(room => (room.status || "available") === statusFilter)
+    }
+    
+    return filtered
+  }, [rows, globalFilter, typeFilter, statusFilter])
+  
+  const dataIds = React.useMemo<UniqueIdentifier[]>(() => filteredRows.map(r => r._id).filter(Boolean), [filteredRows])
 
   const handleEdit = React.useCallback((room: Room) => {
     router.push(`/rooms/${room._id}/edit`)
@@ -374,15 +424,23 @@ export function RoomDataTable({ data, onRoomAdded }: { data: Room[]; onRoomAdded
   const isDeleting = React.useMemo(() => confirmingRoom ? busyId === confirmingRoom._id : false, [confirmingRoom, busyId])
 
   const table = useReactTable({
-    data: rows,
+    data: filteredRows,
     columns,
-    state: { sorting, columnVisibility, rowSelection, pagination },
+    state: { sorting, columnVisibility, rowSelection, pagination, globalFilter },
     getRowId: (row) => row._id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const searchValue = filterValue.toLowerCase()
+      const number = row.original.number?.toLowerCase() || ""
+      const type = row.original.type?.toLowerCase() || ""
+      const status = row.original.status?.toLowerCase() || ""
+      return number.includes(searchValue) || type.includes(searchValue) || status.includes(searchValue)
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -410,26 +468,87 @@ export function RoomDataTable({ data, onRoomAdded }: { data: Room[]; onRoomAdded
 
   return (
     <div className="w-full flex-col gap-4">
-      <div className="flex items-center justify-between px-4">
-        <div className="text-sm text-muted-foreground">Total rooms: {rows.length}</div>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <IconChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {table.getAllColumns().filter((c) => typeof c.accessorFn !== 'undefined' && c.getCanHide()).map((column) => (
-                <DropdownMenuCheckboxItem key={column.id} className="capitalize" checked={column.getIsVisible()} onCheckedChange={(value) => column.toggleVisibility(!!value)}>
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <AddRoomDialog onRoomAdded={onRoomAdded} />
+      {/* Search and Filters Section */}
+      <div className="flex flex-col gap-4 px-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredRows.length} of {rows.length} room{rows.length !== 1 ? 's' : ''}
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <IconLayoutColumns />
+                  <span className="hidden lg:inline">Columns</span>
+                  <IconChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {table.getAllColumns().filter((c) => typeof c.accessorFn !== 'undefined' && c.getCanHide()).map((column) => (
+                  <DropdownMenuCheckboxItem key={column.id} className="capitalize" checked={column.getIsVisible()} onCheckedChange={(value) => column.toggleVisibility(!!value)}>
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <AddRoomDialog onRoomAdded={onRoomAdded} />
+          </div>
+        </div>
+        
+        {/* Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            placeholder="Search rooms by number, type, or status..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="max-w-sm"
+          />
+          
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="single">Single</SelectItem>
+              <SelectItem value="double">Double</SelectItem>
+              <SelectItem value="suite">Suite</SelectItem>
+              <SelectItem value="deluxe">Deluxe</SelectItem>
+              <SelectItem value="family">Family</SelectItem>
+              <SelectItem value="presidential">Presidential</SelectItem>
+              <SelectItem value="standard">Standard</SelectItem>
+              <SelectItem value="premium">Premium</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="occupied">Occupied</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
+              <SelectItem value="cleaning">Cleaning</SelectItem>
+              <SelectItem value="out_of_order">Out of Order</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {(globalFilter || typeFilter !== "all" || statusFilter !== "all") && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                setGlobalFilter("")
+                setTypeFilter("all")
+                setStatusFilter("all")
+              }}
+              className="whitespace-nowrap"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
       </div>
 

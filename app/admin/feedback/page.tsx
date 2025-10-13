@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -10,16 +10,24 @@ import { AuthTokenManager } from "@/utils/cookies";
 import { toast } from "sonner";
 import { PageLoader } from "@/components/common/loading-spinner";
 
-export default function AdminFeedbackPage() {
+function AdminFeedbackContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
+  // Get URL parameters
+  const feedbackId = searchParams.get('id');
+  const status = searchParams.get('status');
+  const category = searchParams.get('category');
+  const page = searchParams.get('page');
+  const limit = searchParams.get('limit');
+
   useEffect(() => {
     document.title = "Amethyst Inn - Feedback Management";
     checkAuthAndFetchFeedback();
-  }, []);
+  }, [feedbackId, status, category, page, limit]);
 
   async function checkAuthAndFetchFeedback() {
     try {
@@ -67,8 +75,18 @@ export default function AdminFeedbackPage() {
       
       console.log("Fetching feedback with token:", authToken ? "present" : "missing");
       
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (status) queryParams.append('approved', status === 'approved' ? 'true' : 'false');
+      if (category) queryParams.append('category', category);
+      if (page) queryParams.append('page', page);
+      if (limit) queryParams.append('limit', limit);
+      
+      const queryString = queryParams.toString();
+      const url = `/api/feedback${queryString ? `?${queryString}` : ''}`;
+      
       // Use internal API route so the httpOnly auth cookie (if present) is included
-      const res = await fetch("/api/feedback", {
+      const res = await fetch(url, {
         headers: { authorization: `Bearer ${authToken}` },
         cache: "no-store",
         credentials: "same-origin",
@@ -123,5 +141,13 @@ export default function AdminFeedbackPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function AdminFeedbackPage() {
+  return (
+    <Suspense fallback={<PageLoader message="Loading feedback..." />}>
+      <AdminFeedbackContent />
+    </Suspense>
   );
 }

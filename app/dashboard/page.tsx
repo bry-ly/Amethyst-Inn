@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -10,15 +10,22 @@ import { AuthTokenManager } from "@/utils/cookies"
 import { PageLoader } from "@/components/common/loading-spinner"
 import { toast } from "sonner"
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState(false)
+
+  // Get URL parameters for dashboard filters
+  const period = searchParams.get('period') // e.g., 'today', 'week', 'month', 'year'
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
+  const metric = searchParams.get('metric') // e.g., 'revenue', 'bookings', 'occupancy'
 
   useEffect(() => {
     document.title = "Amethyst Inn - Dashboard";
     checkAuth()
-  }, [])
+  }, [period, startDate, endDate, metric])
 
   async function checkAuth() {
     try {
@@ -79,4 +86,12 @@ export default function DashboardPage() {
       </SidebarInset>
     </SidebarProvider>
   )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<PageLoader message="Loading dashboard..." />}>
+      <DashboardContent />
+    </Suspense>
+  );
 }

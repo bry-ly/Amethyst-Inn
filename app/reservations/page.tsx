@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import React, { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -10,17 +10,28 @@ import { AuthTokenManager } from "@/utils/cookies"
 import { toast } from "sonner"
 import { PageLoader } from "@/components/common/loading-spinner"
 
-export default function ReservationsPage() {
+function ReservationsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [reservations, setReservations] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Get URL parameters
+  const reservationId = searchParams.get('id')
+  const status = searchParams.get('status')
+  const guestId = searchParams.get('guestId')
+  const roomId = searchParams.get('roomId')
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
+  const page = searchParams.get('page')
+  const limit = searchParams.get('limit')
 
   useEffect(() => {
     document.title = "Amethyst Inn - Reservations";
     checkAuth()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [reservationId, status, guestId, roomId, startDate, endDate, page, limit])
 
   useEffect(() => {
     if (isAuthorized) {
@@ -68,7 +79,20 @@ export default function ReservationsPage() {
       setLoading(true)
       const token = AuthTokenManager.getToken()
 
-      const res = await fetch(`/api/reservations`, {
+      // Build query parameters
+      const queryParams = new URLSearchParams()
+      if (status) queryParams.append('status', status)
+      if (guestId) queryParams.append('guestId', guestId)
+      if (roomId) queryParams.append('roomId', roomId)
+      if (startDate) queryParams.append('startDate', startDate)
+      if (endDate) queryParams.append('endDate', endDate)
+      if (page) queryParams.append('page', page)
+      if (limit) queryParams.append('limit', limit)
+      
+      const queryString = queryParams.toString()
+      const url = `/api/reservations${queryString ? `?${queryString}` : ''}`
+
+      const res = await fetch(url, {
         headers: {
           authorization: `Bearer ${token}`,
           'Cache-Control': 'no-cache'
@@ -122,5 +146,13 @@ export default function ReservationsPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function ReservationsPage() {
+  return (
+    <Suspense fallback={<PageLoader message="Loading reservations..." />}>
+      <ReservationsContent />
+    </Suspense>
   );
 }

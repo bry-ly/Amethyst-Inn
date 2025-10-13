@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -137,6 +138,7 @@ function ReservationDetailsDialog({
   onCancel: () => void;
 }) {
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const [isGeneratingPaymentLink, setIsGeneratingPaymentLink] = React.useState(false);
 
   // Compute values before early return to avoid hook violations
   const identificationDocument = React.useMemo(() => {
@@ -218,6 +220,37 @@ function ReservationDetailsDialog({
       toast.error(error instanceof Error ? error.message : 'Failed to cancel reservation');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleGeneratePaymentLink = async () => {
+    setIsGeneratingPaymentLink(true);
+    try {
+      const token = AuthTokenManager.getToken();
+      const res = await fetch(`/api/reservations/${reservation._id}/payment-link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to generate payment link' }));
+        throw new Error(errorData.message || 'Failed to generate payment link');
+      }
+
+      const data = await res.json();
+      
+      // Open payment link in new tab
+      window.open(data.data.paymentUrl, '_blank');
+      
+      toast.success('Payment link generated! Opening in new tab...');
+    } catch (error) {
+      console.error('Error generating payment link:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate payment link');
+    } finally {
+      setIsGeneratingPaymentLink(false);
     }
   };
 
@@ -466,19 +499,28 @@ function ReservationDetailsDialog({
               <Button
                 variant="destructive"
                 onClick={handleCancel}
-                disabled={isUpdating}
+                disabled={isUpdating || isGeneratingPaymentLink}
                 className="gap-2"
               >
                 <Ban className="h-4 w-4" />
                 {isUpdating ? 'Cancelling...' : 'Cancel Reservation'}
               </Button>
               <Button
+                variant="secondary"
+                onClick={handleGeneratePaymentLink}
+                disabled={isUpdating || isGeneratingPaymentLink}
+                className="gap-2"
+              >
+                <CreditCard className="h-4 w-4" />
+                {isGeneratingPaymentLink ? 'Generating...' : 'Pay with Stripe'}
+              </Button>
+              <Button
                 onClick={handleConfirm}
-                disabled={isUpdating}
+                disabled={isUpdating || isGeneratingPaymentLink}
                 className="gap-2"
               >
                 <CheckCircle className="h-4 w-4" />
-                {isUpdating ? 'Confirming...' : 'Confirm & Pay Deposit'}
+                {isUpdating ? 'Confirming...' : 'Confirm & Pay Cash'}
               </Button>
             </>
           )}
@@ -576,16 +618,37 @@ export function ReservationDataTable({
 }) {
   const [reservations, setReservations] = React.useState<Reservation[]>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  
+  // Load column visibility from localStorage on mount
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    try {
+      const saved = localStorage.getItem('reservation-table-column-visibility')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  });
+  
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [selectedReservation, setSelectedReservation] = React.useState<Reservation | null>(null);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
 
   React.useEffect(() => {
     setReservations(initialReservations);
   }, [initialReservations]);
+  
+  // Save column visibility to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('reservation-table-column-visibility', JSON.stringify(columnVisibility))
+    } catch (error) {
+      console.error('Failed to save column visibility:', error)
+    }
+  }, [columnVisibility]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -593,9 +656,32 @@ export function ReservationDataTable({
     useSensor(KeyboardSensor, {})
   );
 
+  // Apply filters to reservations
+  const filteredReservations = React.useMemo(() => {
+    let filtered = reservations;
+    
+    // Global search filter
+    if (globalFilter) {
+      const search = globalFilter.toLowerCase();
+      filtered = filtered.filter(res => 
+        res.guest.name?.toLowerCase().includes(search) ||
+        res.room?.roomNumber?.toLowerCase().includes(search) ||
+        res.room?.number?.toLowerCase().includes(search) ||
+        res._id?.toLowerCase().includes(search)
+      );
+    }
+    
+    // Status filter
+    if (statusFilter && statusFilter !== "all") {
+      filtered = filtered.filter(res => res.status === statusFilter);
+    }
+    
+    return filtered;
+  }, [reservations, globalFilter, statusFilter]);
+
   const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => reservations?.map(({ _id }) => _id),
-    [reservations]
+    () => filteredReservations?.map(({ _id }) => _id),
+    [filteredReservations]
   );
 
   const columns = React.useMemo<ColumnDef<Reservation>[]>(
@@ -704,11 +790,12 @@ export function ReservationDataTable({
   );
 
   const table = useReactTable({
-    data: reservations,
+    data: filteredReservations,
     columns,
     state: {
       sorting,
       columnVisibility,
+      globalFilter,
       columnFilters,
       rowSelection,
       pagination,
@@ -719,12 +806,19 @@ export function ReservationDataTable({
     onColumnVisibilityChange: setColumnVisibility,
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const searchValue = filterValue.toLowerCase();
+      const guestName = row.original.guest.name?.toLowerCase() || "";
+      const roomNumber = row.original.room?.roomNumber?.toLowerCase() || row.original.room?.number?.toLowerCase() || "";
+      return guestName.includes(searchValue) || roomNumber.includes(searchValue);
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
-    pageCount: Math.ceil(reservations.length / pagination.pageSize),
+    pageCount: Math.ceil(filteredReservations.length / pagination.pageSize),
     getRowId: (row) => row._id,
   });
 
@@ -750,35 +844,81 @@ export function ReservationDataTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-auto h-8">
-                <IconLayoutColumns className="mr-2 h-4 w-4" />
-                View
-                <IconChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[150px]">
-              {table
-                .getAllColumns()
-                .filter((column) => typeof column.accessorFn !== "undefined" && column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+      {/* Filters Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredReservations.length} of {reservations.length} reservation{reservations.length !== 1 ? 's' : ''}
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-auto h-8">
+                  <IconLayoutColumns className="mr-2 h-4 w-4" />
+                  Columns
+                  <IconChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[150px]">
+                {table
+                  .getAllColumns()
+                  .filter((column) => typeof column.accessorFn !== "undefined" && column.getCanHide())
+                  .map((column) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+        
+        {/* Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            placeholder="Search by guest name or room number..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="max-w-sm"
+          />
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="checked_in">Checked In</SelectItem>
+              <SelectItem value="checked_out">Checked Out</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="no_show">No Show</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {(globalFilter || statusFilter !== "all") && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                setGlobalFilter("")
+                setStatusFilter("all")
+              }}
+              className="whitespace-nowrap"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
+        
         <div className="text-sm text-muted-foreground">
           {(() => {
             try {

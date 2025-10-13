@@ -322,7 +322,17 @@ export function FeedbackDataTable({
   const safeData = Array.isArray(data) ? data : [];
   const [rows, setRows] = React.useState<Feedback[]>(safeData);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  
+  // Load column visibility from localStorage on mount
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    try {
+      const saved = localStorage.getItem('feedback-table-column-visibility')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  });
+  
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -338,6 +348,15 @@ export function FeedbackDataTable({
   React.useEffect(() => {
     setRows(safeData);
   }, [safeData]);
+  
+  // Save column visibility to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('feedback-table-column-visibility', JSON.stringify(columnVisibility))
+    } catch (error) {
+      console.error('Failed to save column visibility:', error)
+    }
+  }, [columnVisibility]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {}),

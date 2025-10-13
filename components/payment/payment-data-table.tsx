@@ -706,12 +706,34 @@ export default function PaymentDataTable() {
   }, [data]);
 
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  
+  // Load column visibility from localStorage on mount
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    try {
+      const saved = localStorage.getItem('payment-table-column-visibility')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  });
+  
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [methodFilter, setMethodFilter] = React.useState<string>("all");
   const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = React.useState(false);
+  
+  // Save column visibility to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('payment-table-column-visibility', JSON.stringify(columnVisibility))
+    } catch (error) {
+      console.error('Failed to save column visibility:', error)
+    }
+  }, [columnVisibility]);
 
   const handleViewDetails = React.useCallback((payment: Payment) => {
     setSelectedPayment(payment);
@@ -764,25 +786,66 @@ export default function PaymentDataTable() {
     useSensor(KeyboardSensor, {})
   );
 
+  // Apply filters to rows
+  const filteredRows = React.useMemo(() => {
+    let filtered = rows;
+    
+    // Global search filter
+    if (globalFilter) {
+      const search = globalFilter.toLowerCase();
+      filtered = filtered.filter(payment => {
+        const guestInfo = typeof payment.guest === 'object' ? payment.guest : null;
+        const guestName = guestInfo?.name?.toLowerCase() || '';
+        const guestEmail = guestInfo?.email?.toLowerCase() || '';
+        const bookingId = typeof payment.booking === 'string' ? payment.booking : payment.booking?._id || '';
+        
+        return guestName.includes(search) ||
+          guestEmail.includes(search) ||
+          bookingId.toLowerCase().includes(search) ||
+          payment._id?.toLowerCase().includes(search) ||
+          payment.stripePaymentIntentId?.toLowerCase().includes(search);
+      });
+    }
+    
+    // Status filter
+    if (statusFilter && statusFilter !== "all") {
+      filtered = filtered.filter(payment => payment.status === statusFilter);
+    }
+    
+    // Method filter
+    if (methodFilter && methodFilter !== "all") {
+      filtered = filtered.filter(payment => payment.paymentMethod === methodFilter);
+    }
+    
+    return filtered;
+  }, [rows, globalFilter, statusFilter, methodFilter]);
+
   const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => rows.map((p) => p._id).filter(Boolean),
-    [rows]
+    () => filteredRows.map((p) => p._id).filter(Boolean),
+    [filteredRows]
   );
 
   const table = useReactTable({
-    data: rows,
+    data: filteredRows,
     columns,
     state: {
       sorting,
       columnVisibility,
       rowSelection,
       pagination,
+      globalFilter,
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const searchValue = filterValue.toLowerCase();
+      const bookingId = typeof row.original.booking === 'string' ? row.original.booking : row.original.booking?._id || "";
+      return bookingId.toLowerCase().includes(searchValue);
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -847,35 +910,92 @@ export default function PaymentDataTable() {
       />
 
       <div className="w-full flex-col gap-4">
-        <div className="flex items-center justify-between px-4">
-          <div className="text-sm text-muted-foreground">
-            Total payments: {rows.length}
+        {/* Search and Filters Section */}
+        <div className="flex flex-col gap-4 px-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredRows.length} of {rows.length} payment{rows.length !== 1 ? 's' : ''}
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <IconPlus className="h-4 w-4" />
+                    <span className="hidden lg:inline">Columns</span>
+                    <IconChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {table
+                    .getAllColumns()
+                    .filter((col) => typeof col.accessorFn !== 'undefined' && col.getCanHide())
+                    .map((column) => (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <IconPlus className="h-4 w-4" />
-                  <span className="hidden lg:inline">Columns</span>
-                  <IconChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {table
-                  .getAllColumns()
-                  .filter((col) => typeof col.accessorFn !== 'undefined' && col.getCanHide())
-                  .map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          
+          {/* Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              placeholder="Search by booking ID or payment ID..."
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="max-w-sm"
+            />
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="succeeded">Succeeded</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="refunded">Refunded</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={methodFilter} onValueChange={setMethodFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="All Methods" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Methods</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="stripe">Stripe</SelectItem>
+                <SelectItem value="paypal">PayPal</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {(globalFilter || statusFilter !== "all" || methodFilter !== "all") && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setGlobalFilter("")
+                  setStatusFilter("all")
+                  setMethodFilter("all")
+                }}
+                className="whitespace-nowrap"
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
 

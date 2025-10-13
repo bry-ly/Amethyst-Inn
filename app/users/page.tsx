@@ -31,8 +31,21 @@ async function requireAdmin() {
   }
 }
 
-export default async function UsersPage() {
+// Accept searchParams for URL parameters
+type UsersPageProps = {
+  searchParams: Promise<{
+    id?: string;
+    role?: string;
+    status?: string;
+    search?: string;
+    page?: string;
+    limit?: string;
+  }>;
+}
+
+export default async function UsersPage({ searchParams }: UsersPageProps) {
   await requireAdmin()
+  const params = await searchParams
   return (
     <div className="h-screen">
       <SidebarProvider
@@ -47,7 +60,7 @@ export default async function UsersPage() {
           <div className="flex flex-1 flex-col h-full">
             <div className="@container/main flex flex-1 flex-col gap-2 h-full">
               <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 h-full">
-                <UsersPageWrapper />
+                <UsersPageWrapper role="admin" />
               </div>
             </div>
           </div>

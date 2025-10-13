@@ -1,5 +1,6 @@
 "use client"
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { UserSidebar } from '@/components/layout/user-sidebar'
 import { UserSiteHeaderWrapper } from '@/components/layout/user-site-header-wrapper'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -219,20 +220,37 @@ function BookingCard({
   )
 }
 
-export default function UserBookingsPage() {
+function UserBookingsContent() {
+  const searchParams = useSearchParams()
   const [bookings, setBookings] = useState<BookingRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<BookingActionLoading>({})
 
+  // Get URL parameters
+  const bookingId = searchParams.get('id')
+  const status = searchParams.get('status')
+  const page = searchParams.get('page')
+  const limit = searchParams.get('limit')
+
   React.useEffect(() => {
     document.title = "Amethyst Inn - My Bookings"
-  }, [])
+  }, [bookingId, status, page, limit])
 
   const loadBookings = useCallback(async () => {
     setLoading(true)
     try {
       const token = AuthTokenManager.getToken()
-      const res = await fetch(`/api/bookings`, {
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams()
+      if (status) queryParams.append('status', status)
+      if (page) queryParams.append('page', page)
+      if (limit) queryParams.append('limit', limit)
+      
+      const queryString = queryParams.toString()
+      const url = `/api/bookings${queryString ? `?${queryString}` : ''}`
+      
+      const res = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
         credentials: 'same-origin',
@@ -258,7 +276,7 @@ export default function UserBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [status, page, limit])
 
   useEffect(() => {
     loadBookings()
@@ -387,5 +405,17 @@ export default function UserBookingsPage() {
         </SidebarInset>
       </SidebarProvider>
     </div>
+  )
+}
+
+export default function UserBookingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse">Loading bookings...</div>
+      </div>
+    }>
+      <UserBookingsContent />
+    </Suspense>
   )
 }
