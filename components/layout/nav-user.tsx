@@ -38,6 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { AuthTokenManager } from "@/utils/cookies"
 
 export function NavUser({
   user,
@@ -65,7 +66,14 @@ export function NavUser({
     let mounted = true
     const load = async () => {
       try {
-        const res = await fetch('/api/auth/me', { cache: 'no-store' })
+        const token = AuthTokenManager.getToken()
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+
+        const res = await fetch('/api/auth/me', {
+          cache: 'no-store',
+          headers,
+          credentials: 'include',
+        })
         if (!res.ok) return
         const data: any = await res.json()
         if (mounted && data) {

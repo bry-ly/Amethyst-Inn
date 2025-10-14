@@ -17,6 +17,7 @@ import { NavUser } from "@/components/layout/nav-user"
 import { NavUserMain } from "@/components/layout/nav-user-main"
 import { NavUserDocuments } from "@/components/layout/nav-user-documents"
 import { NavUserSecondary } from "@/components/layout/nav-user-secondary"
+import { AuthTokenManager } from "@/utils/cookies"
 
 import {
   Sidebar,
@@ -113,7 +114,16 @@ export function UserSidebar({ user, ...props }: UserSidebarProps) {
 
     const loadUser = async () => {
       try {
-        const response = await fetch("/api/auth/me", { cache: "no-store" })
+        const token = AuthTokenManager.getToken()
+        const headers: HeadersInit = token
+          ? { Authorization: `Bearer ${token}` }
+          : {}
+
+        const response = await fetch("/api/auth/me", {
+          cache: "no-store",
+          headers,
+          credentials: "include",
+        })
         if (!response?.ok) return
 
         const payload = await response.json()
