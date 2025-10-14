@@ -91,6 +91,56 @@ const data = {
 }
 
 export function UserSidebar({ user, ...props }: UserSidebarProps) {
+  const [resolvedUser, setResolvedUser] = React.useState<UserSidebarProps["user"] | null>(() =>
+    user
+      ? {
+          ...user,
+          avatar: user.avatar || "/avatars/default.jpg",
+        }
+      : null,
+  )
+
+  React.useEffect(() => {
+    if (user) {
+      setResolvedUser({
+        ...user,
+        avatar: user.avatar || "/avatars/default.jpg",
+      })
+      return
+    }
+
+    let mounted = true
+
+    const loadUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" })
+        if (!response?.ok) return
+
+        const payload = await response.json()
+
+        if (!mounted) return
+
+        setResolvedUser({
+          name: payload?.name || data.user.name,
+          email: payload?.email || data.user.email,
+          avatar: payload?.avatar || "/avatars/default.jpg",
+        })
+      } catch {
+        if (mounted) {
+          setResolvedUser(data.user)
+        }
+      }
+    }
+
+    loadUser()
+
+    return () => {
+      mounted = false
+    }
+  }, [user])
+
+  const displayUser = resolvedUser || data.user
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -116,7 +166,7 @@ export function UserSidebar({ user, ...props }: UserSidebarProps) {
       </SidebarContent>
       
       <SidebarFooter>
-        <NavUser user={user ? { ...user, avatar: user.avatar || "/avatars/default.jpg" } : data.user} />
+        <NavUser user={displayUser} />
       </SidebarFooter>
     </Sidebar>
   )
