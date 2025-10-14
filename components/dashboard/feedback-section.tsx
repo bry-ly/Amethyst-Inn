@@ -8,11 +8,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AuthTokenManager } from "@/utils/cookies";
 import type { Feedback, CreateFeedbackPayload, FeedbackCategory } from "@/types/feedback";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FeedbackSectionProps {
   userId?: string;
@@ -51,7 +69,7 @@ function StarRating({ rating, onRatingChange, readOnly = false }: { rating: numb
   );
 }
 
-function FeedbackCard({ feedback, onDelete, onEdit }: { feedback: Feedback; onDelete: (id: string) => void; onEdit: (feedback: Feedback) => void }) {
+function FeedbackCard({ feedback, onDelete, onEdit }: { feedback: Feedback; onDelete: (feedback: Feedback) => void; onEdit: (feedback: Feedback) => void }) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -77,7 +95,7 @@ function FeedbackCard({ feedback, onDelete, onEdit }: { feedback: Feedback; onDe
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onDelete(feedback._id)}
+              onClick={() => onDelete(feedback)}
               className="h-8 w-8 text-destructive hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
@@ -111,6 +129,8 @@ export function FeedbackSection({ userId }: FeedbackSectionProps) {
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Feedback | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState<CreateFeedbackPayload>({
     rating: 5,
@@ -200,14 +220,13 @@ export function FeedbackSection({ userId }: FeedbackSectionProps) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this feedback?")) {
-      return;
-    }
+  const confirmDelete = async () => {
+    if (!deleteTarget?._id) return;
 
     try {
+      setIsDeleting(true);
       const token = AuthTokenManager.getToken();
-      const res = await fetch(`/api/feedback/${id}`, {
+      const res = await fetch(`/api/feedback/${deleteTarget._id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -222,7 +241,14 @@ export function FeedbackSection({ userId }: FeedbackSectionProps) {
       loadFeedbacks();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete feedback");
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
+  };
+
+  const requestDelete = (feedback: Feedback) => {
+    setDeleteTarget(feedback);
   };
 
   const handleEdit = (feedback: Feedback) => {
@@ -380,12 +406,29 @@ export function FeedbackSection({ userId }: FeedbackSectionProps) {
             <FeedbackCard
               key={feedback._id}
               feedback={feedback}
-              onDelete={handleDelete}
+                onDelete={requestDelete}
               onEdit={handleEdit}
             />
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete feedback?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected feedback will be permanently removed from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

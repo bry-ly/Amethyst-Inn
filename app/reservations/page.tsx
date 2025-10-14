@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ReservationDataTable } from "@/components/reservation/reservation-data-table"
+import { Unauthorized } from "@/components/ui/unauthorized"
 import { AuthTokenManager } from "@/utils/cookies"
 import { toast } from "sonner"
 import { PageLoader } from "@/components/common/loading-spinner"
@@ -48,7 +49,7 @@ function ReservationsContent() {
         return
       }
 
-      // Check if user is admin or staff
+  // Check if user is admin
       const authRes = await fetch(`/api/auth/me`, {
         headers: { authorization: `Bearer ${token}` },
         cache: "no-store"
@@ -61,16 +62,18 @@ function ReservationsContent() {
 
       const userData = await authRes.json()
       
-      if (userData?.role !== "admin" && userData?.role !== "staff") {
-        toast.error("Access denied. Admin or staff privileges required.")
-        router.push("/")
-        return
+      if (userData?.role !== "admin") {
+        setIsAuthorized(false);
+        setLoading(false);
+        return;
       }
 
       setIsAuthorized(true)
     } catch (error) {
       console.error("Auth error:", error)
       router.push("/login?next=/reservations")
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -127,14 +130,13 @@ function ReservationsContent() {
       <SidebarInset>
         <SiteHeader />
         <div className="mt-4 lg:mt-6">
-          {!isAuthorized ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <PageLoader message="Checking authorization..." />
-            </div>
-          ) : loading ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <PageLoader message="Loading reservations..." />
-            </div>
+          {loading ? (
+            <PageLoader message="Checking authorization..." />
+          ) : !isAuthorized ? (
+            <Unauthorized
+              title="Admin Access Required"
+              message="This reservation management page is restricted to administrators only. You need admin privileges to view and manage reservations."
+            />
           ) : (
             <div className="container mx-auto px-4 py-6">
               <ReservationDataTable

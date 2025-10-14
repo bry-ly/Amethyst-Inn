@@ -207,7 +207,7 @@ export function LoginForm({
                     onError={handleTurnstileError}
                     onExpire={handleTurnstileExpire}
                     theme="auto"
-                    size="normal"
+                    size="compact"
                   />
                 )}
                 <Button type="submit" className="w-full" disabled={loading || (isProduction && !turnstileToken)}>

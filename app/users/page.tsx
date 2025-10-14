@@ -1,51 +1,66 @@
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
+"use client";
+
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { UsersPageWrapper } from '@/components/tables/users-page-wrapper'
-import { Metadata } from "next"
+import { Unauthorized } from "@/components/ui/unauthorized"
+import { AuthTokenManager } from "@/utils/cookies"
+import { PageLoader } from "@/components/common/loading-spinner"
 
-export const metadata: Metadata = {
-  title: "Amethyst Inn - Users",
-}
+function UsersContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-export const fetchCache = "force-no-store"
+  // Get URL parameters
+  const userId = searchParams.get('id')
+  const role = searchParams.get('role')
+  const status = searchParams.get('status')
+  const search = searchParams.get('search')
+  const page = searchParams.get('page')
+  const limit = searchParams.get('limit')
 
-async function requireAdmin() {
-  const token = (await cookies()).get('auth_token')?.value
-  if (!token) redirect('/login?next=/users')
-  try {
-    // Use internal auth endpoint so the cookie is automatically used (no cross-origin fetch)
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL ? '' : ''}/api/auth/me`, {
-      cache: 'no-store',
-      headers: { authorization: `Bearer ${token}` }
-    })
-    if (!res.ok) redirect('/login?next=/users')
-    const data = await res.json()
-    if (data?.role !== 'admin') redirect('/')
-  } catch {
-    redirect('/login?next=/users')
+  useEffect(() => {
+    document.title = "Amethyst Inn - Users";
+    checkAuth()
+  }, [userId, role, status, search, page, limit])
+
+  async function checkAuth() {
+    try {
+      const token = AuthTokenManager.getToken()
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+      const authRes = await fetch('/api/auth/me', {
+        cache: 'no-store',
+        headers,
+        credentials: 'same-origin',
+      })
+
+      if (!authRes.ok) {
+        router.push("/login?next=/users")
+        return
+      }
+
+      const userData = await authRes.json()
+      
+      if (userData?.role !== "admin") {
+        setIsAuthorized(false);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsAuthorized(true)
+    } catch (error) {
+      console.error("Auth error:", error)
+      router.push("/login?next=/users")
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
 
-// Accept searchParams for URL parameters
-type UsersPageProps = {
-  searchParams: Promise<{
-    id?: string;
-    role?: string;
-    status?: string;
-    search?: string;
-    page?: string;
-    limit?: string;
-  }>;
-}
-
-export default async function UsersPage({ searchParams }: UsersPageProps) {
-  await requireAdmin()
-  const params = await searchParams
   return (
     <div className="h-screen">
       <SidebarProvider
@@ -59,13 +74,30 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           <SiteHeader />
           <div className="flex flex-1 flex-col h-full">
             <div className="@container/main flex flex-1 flex-col gap-2 h-full">
-              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 h-full">
-                <UsersPageWrapper role="admin" />
-              </div>
+              {isLoading ? (
+                <PageLoader message="Checking authorization..." />
+              ) : !isAuthorized ? (
+                <Unauthorized
+                  title="Admin Access Required"
+                  message="This user management page is restricted to administrators only. You need admin privileges to view and manage users."
+                />
+              ) : (
+                <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 h-full">
+                  <UsersPageWrapper role="admin" />
+                </div>
+              )}
             </div>
           </div>
         </SidebarInset>
       </SidebarProvider>
     </div>
   )
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<PageLoader message="Loading users..." />}>
+      <UsersContent />
+    </Suspense>
+  );
 }

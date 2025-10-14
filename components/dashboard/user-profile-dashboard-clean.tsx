@@ -24,6 +24,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
+import { Spinner } from "../ui/spinner";
 import { toast } from "sonner";
 import { AuthTokenManager } from "@/utils/cookies";
 import { 
@@ -225,15 +226,11 @@ export function UserProfileDashboard({
   // Show loading state during initial profile load
   if (loading && !user) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent className="py-12">
-            <div className="flex flex-col items-center justify-center gap-3">
-              <Clock className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">Loading your profile...</p>
+        <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground h-100">
+            <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Spinner className="size-8 text-primary" />
+              <p>Loading your profile...</p>
             </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }

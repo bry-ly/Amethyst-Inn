@@ -5,6 +5,7 @@ import { UserSidebar } from '@/components/layout/user-sidebar'
 import { UserSiteHeaderWrapper } from '@/components/layout/user-site-header-wrapper'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { UserProfileDashboard } from '@/components/dashboard/user-profile-dashboard-clean'
+import { Spinner } from '@/components/ui/spinner'
 
 function ProfileContent() {
   const searchParams = useSearchParams()
@@ -44,8 +45,9 @@ function ProfileContent() {
 export default function ProfilePage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse">Loading profile...</div>
+      <div className="flex items-center justify-center min-h-screen text-muted-foreground gap-3">
+        <Spinner className="size-6" />
+        <span>Loading profile...</span>
       </div>
     }>
       <ProfileContent />

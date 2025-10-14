@@ -6,9 +6,9 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper"
+import { Unauthorized } from "@/components/ui/unauthorized"
 import { AuthTokenManager } from "@/utils/cookies"
 import { PageLoader } from "@/components/common/loading-spinner"
-import { toast } from "sonner"
 
 function DashboardContent() {
   const router = useRouter()
@@ -46,9 +46,9 @@ function DashboardContent() {
       const data = await res.json()
       
       if (data?.role !== "admin") {
-        toast.error("Access denied. Admin privileges required.")
-        router.push("/")
-        return
+        setIsAuthorized(false);
+        setIsLoading(false);
+        return;
       }
 
       setIsAuthorized(true)
@@ -75,9 +75,10 @@ function DashboardContent() {
             {isLoading ? (
               <PageLoader message="Loading dashboard..." />
             ) : !isAuthorized ? (
-              <div className="flex items-center justify-center min-h-[400px]">
-                <p className="text-muted-foreground">Checking authorization...</p>
-              </div>
+              <Unauthorized
+                title="Admin Access Required"
+                message="This dashboard is restricted to administrators only. You need admin privileges to view analytics and management tools."
+              />
             ) : (
               <DashboardWrapper />
             )}

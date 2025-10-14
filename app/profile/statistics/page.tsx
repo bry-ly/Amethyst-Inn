@@ -5,6 +5,7 @@ import { UserSiteHeaderWrapper } from '@/components/layout/user-site-header-wrap
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CalendarDays, CheckCircle2, TrendingUp, DollarSign } from 'lucide-react'
+import { IconCurrencyPeso } from '@tabler/icons-react'
 
 export default function UserStatisticsPage() {
   const [stats, setStats] = React.useState({
@@ -104,7 +105,7 @@ export default function UserStatisticsPage() {
                       <CardTitle className="text-sm font-medium text-muted-foreground">
                         Total Spent
                       </CardTitle>
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <IconCurrencyPeso className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">₱{stats.totalSpent.toLocaleString()}</div>

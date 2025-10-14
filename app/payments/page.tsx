@@ -6,8 +6,8 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import PaymentDataTable from "@/components/payment/payment-data-table"
+import { Unauthorized } from "@/components/ui/unauthorized"
 import { AuthTokenManager } from "@/utils/cookies"
-import { toast } from "sonner"
 import { PageLoader } from "@/components/common/loading-spinner"
 
 function PaymentsContent() {
@@ -37,20 +37,21 @@ function PaymentsContent() {
         checkAuthAndLoad()
       }
     }
+    const handleFocus = () => checkAuthAndLoad()
     
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', () => checkAuthAndLoad())
+    window.addEventListener('focus', handleFocus)
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', checkAuthAndLoad)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [paymentId, status, method, bookingId, guestId, startDate, endDate, page, limit])
 
   async function checkAuthAndLoad() {
     try {
-      const token = AuthTokenManager.getToken()
-      // Check if user is admin/staff using internal API
+  const token = AuthTokenManager.getToken()
+  // Check if user is admin using internal API
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
       const authRes = await fetch('/api/auth/me', {
         cache: 'no-store',
@@ -65,10 +66,10 @@ function PaymentsContent() {
 
       const userData = await authRes.json()
       
-      if (userData?.role !== "admin" && userData?.role !== "staff") {
-        toast.error("Access denied. Admin privileges required.")
-        router.push("/")
-        return
+      if (userData?.role !== "admin") {
+        setIsAuthorized(false);
+        setIsLoading(false);
+        return;
       }
 
       setIsAuthorized(true)
@@ -94,9 +95,10 @@ function PaymentsContent() {
           {isLoading ? (
             <PageLoader message="Loading payments..." />
           ) : !isAuthorized ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <p className="text-muted-foreground">Checking authorization...</p>
-            </div>
+            <Unauthorized
+              title="Admin Access Required"
+              message="This payment management page is restricted to administrators only. You need admin privileges to view and manage payments."
+            />
           ) : (
             <PaymentDataTable />
           )}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import { toast } from "sonner"
 import { AuthTokenManager } from "@/utils/cookies"
 import { 
@@ -368,14 +369,10 @@ function UserBookingsContent() {
                 </div>
 
                 {loading ? (
-                  <Card>
-                    <CardContent className="py-8">
-                      <div className="flex items-center justify-center text-muted-foreground">
-                        <Clock className="h-5 w-5 mr-2 animate-spin" />
-                        Loading bookings...
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div className="flex flex-1 items-center justify-center py-12">
+                    <Spinner className="size-8 text-primary-foreground" />
+                    <span className="ml-3 text-primary-foreground">Loading bookings...</span>
+                  </div>
                 ) : !bookings || bookings.length === 0 ? (
                   <Card>
                     <CardContent className="py-12">

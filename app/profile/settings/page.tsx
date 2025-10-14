@@ -7,11 +7,24 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Toggle } from '@/components/ui/toggle'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { AuthTokenManager } from '@/utils/cookies'
-import { Settings, Bell, Shield, User, ChevronDown, ChevronUp, Cookie } from 'lucide-react'
+import { Settings, Bell, Shield, User, Cookie, Info, Eye, EyeOff } from 'lucide-react'
 
 // Rate limiting configuration
 const RATE_LIMIT = {
@@ -52,12 +65,10 @@ export default function UserSettingsPage() {
     analyticsCookies: false,
     marketingCookies: false,
   })
-  const [expandedSections, setExpandedSections] = React.useState({
-    profile: true,
-    password: true,
-    notifications: true,
-    cookies: true,
-    account: true,
+  const [passwordVisibility, setPasswordVisibility] = React.useState({
+    current: false,
+    new: false,
+    confirm: false,
   })
   const [cooldownTimers, setCooldownTimers] = React.useState<Record<RateLimitAction, number>>({
     profile: 0,
@@ -109,10 +120,6 @@ export default function UserSettingsPage() {
     document.title = "Amethyst Inn - Settings"
     loadUserData()
   }, [loadUserData])
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
-  }
 
   const checkRateLimit = (action: keyof typeof rateLimitState): boolean => {
     const now = Date.now()
@@ -246,7 +253,6 @@ export default function UserSettingsPage() {
           <div className="flex flex-1 flex-col h-full overflow-y-auto">
             <div className="@container/main flex flex-1 flex-col gap-2">
               <div className="flex flex-col gap-8 py-6 md:py-8 px-4 md:px-8 max-w-5xl mx-auto w-full">
-                {/* Header */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <Settings className="h-8 w-8 text-primary" />
@@ -257,428 +263,444 @@ export default function UserSettingsPage() {
                   </p>
                 </div>
 
-                {/* Profile Information */}
-                <section className="space-y-6">
-                  <div 
-                    className="flex items-center justify-between cursor-pointer group"
-                    onClick={() => toggleSection('profile')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold">Profile Information</h2>
-                        <p className="text-sm text-muted-foreground">
-                          Update your personal details and contact information
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      {expandedSections.profile ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </Button>
-                  </div>
+                <Tabs defaultValue="profile" className="space-y-6">
+                  <TabsList className="w-full flex-wrap justify-start">
+                    <TabsTrigger value="profile" className="gap-2">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </TabsTrigger>
+                    <TabsTrigger value="password" className="gap-2">
+                      <Shield className="h-4 w-4" />
+                      Security
+                    </TabsTrigger>
+                    <TabsTrigger value="notifications" className="gap-2">
+                      <Bell className="h-4 w-4" />
+                      Notifications
+                    </TabsTrigger>
+                    <TabsTrigger value="privacy" className="gap-2">
+                      <Cookie className="h-4 w-4" />
+                      Privacy
+                    </TabsTrigger>
+                    <TabsTrigger value="account" className="gap-2">
+                      <Info className="h-4 w-4" />
+                      Account
+                    </TabsTrigger>
+                  </TabsList>
 
-                  {expandedSections.profile && (
-                    <form onSubmit={handleUpdateProfile} className="space-y-6 pl-14 animate-in slide-in-from-top-2 duration-300">
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="text-base font-medium">Full Name</Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="Enter your full name"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="text-base font-medium">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                            placeholder="Enter your email"
-                            className="h-11"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="phone" className="text-base font-medium">Phone Number</Label>
-                          <Input
-                            id="phone"
-                            value={formData.phone}
-                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                            placeholder="Enter your phone number"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="address" className="text-base font-medium">Address</Label>
-                          <Input
-                            id="address"
-                            value={formData.address}
-                            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                            placeholder="Enter your address"
-                            className="h-11"
-                          />
-                        </div>
-                      </div>
+                  <TabsContent value="profile" className="mt-6">
+                    <form onSubmit={handleUpdateProfile}>
+                      <Card className="border-border/60">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-xl">
+                            <User className="h-5 w-5 text-primary" />
+                            Profile Information
+                          </CardTitle>
+                          <CardDescription>
+                            Update your personal details and contact information.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-6">
+                          <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="name" className="text-base font-medium">Full Name</Label>
+                              <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="Enter your full name"
+                                className="h-11"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-base font-medium">Email</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                                placeholder="Enter your email"
+                                className="h-11"
+                              />
+                            </div>
+                          </div>
 
-                      <div className="flex flex-col items-end gap-2 pt-2">
-                        {cooldownTimers.profile > 0 && (
-                          <p className="text-sm text-destructive font-medium">
-                            Please wait {cooldownTimers.profile}s before trying again
-                          </p>
-                        )}
-                        <Button 
-                          type="submit" 
-                          disabled={loading || cooldownTimers.profile > 0} 
-                          size="lg"
-                        >
-                          {loading ? 'Saving...' : cooldownTimers.profile > 0 ? `Wait ${cooldownTimers.profile}s` : 'Save Changes'}
-                        </Button>
-                      </div>
+                          <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="phone" className="text-base font-medium">Phone Number</Label>
+                              <Input
+                                id="phone"
+                                value={formData.phone}
+                                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                placeholder="Enter your phone number"
+                                className="h-11"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="address" className="text-base font-medium">Address</Label>
+                              <Input
+                                id="address"
+                                value={formData.address}
+                                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                                placeholder="Enter your address"
+                                className="h-11"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex flex-col items-end gap-2">
+                          {cooldownTimers.profile > 0 && (
+                            <p className="text-sm text-destructive font-medium">
+                              Please wait {cooldownTimers.profile}s before trying again
+                            </p>
+                          )}
+                          <Button
+                            type="submit"
+                            disabled={loading || cooldownTimers.profile > 0}
+                            size="lg"
+                          >
+                            {loading ? 'Saving...' : cooldownTimers.profile > 0 ? `Wait ${cooldownTimers.profile}s` : 'Save Changes'}
+                          </Button>
+                        </CardFooter>
+                      </Card>
                     </form>
-                  )}
-                </section>
+                  </TabsContent>
 
-                <Separator />
+                  <TabsContent value="password" className="mt-6">
+                    <form onSubmit={handleChangePassword}>
+                      <Card className="border-border/60">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-xl">
+                            <Shield className="h-5 w-5 text-destructive" />
+                            Security
+                          </CardTitle>
+                          <CardDescription>
+                            Change your password and keep your account secure.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="currentPassword" className="text-base font-medium">Current Password</Label>
+                            <div className="relative">
+                              <Input
+                                id="currentPassword"
+                                type={passwordVisibility.current ? 'text' : 'password'}
+                                value={formData.currentPassword}
+                                onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                                placeholder="Enter current password"
+                                className="h-11 pr-12"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1.5 top-1.5 h-8 w-8"
+                                onClick={() =>
+                                  setPasswordVisibility(prev => ({ ...prev, current: !prev.current }))
+                                }
+                                aria-label={`${passwordVisibility.current ? 'Hide' : 'Show'} current password`}
+                              >
+                                {passwordVisibility.current ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
 
-                {/* Change Password */}
-                <section className="space-y-6">
-                  <div 
-                    className="flex items-center justify-between cursor-pointer group"
-                    onClick={() => toggleSection('password')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-destructive/10 group-hover:bg-destructive/20 transition-colors">
-                        <Shield className="h-5 w-5 text-destructive" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold">Security</h2>
-                        <p className="text-sm text-muted-foreground">
-                          Change your password and secure your account
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      {expandedSections.password ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </Button>
-                  </div>
-
-                  {expandedSections.password && (
-                    <form onSubmit={handleChangePassword} className="space-y-6 pl-14 animate-in slide-in-from-top-2 duration-300">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword" className="text-base font-medium">Current Password</Label>
-                        <Input
-                          id="currentPassword"
-                          type="password"
-                          value={formData.currentPassword}
-                          onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                          placeholder="Enter current password"
-                          className="h-11"
-                        />
-                      </div>
-                      
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="newPassword" className="text-base font-medium">New Password</Label>
-                          <Input
-                            id="newPassword"
-                            type="password"
-                            value={formData.newPassword}
-                            onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
-                            placeholder="Enter new password"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmPassword" className="text-base font-medium">Confirm Password</Label>
-                          <Input
-                            id="confirmPassword"
-                            type="password"
-                            value={formData.confirmPassword}
-                            onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                            placeholder="Confirm new password"
-                            className="h-11"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2 pt-2">
-                        {cooldownTimers.password > 0 && (
-                          <p className="text-sm text-destructive font-medium">
-                            Please wait {cooldownTimers.password}s before trying again
-                          </p>
-                        )}
-                        <Button 
-                          type="submit" 
-                          disabled={loading || cooldownTimers.password > 0} 
-                          size="lg"
-                        >
-                          {loading ? 'Updating...' : cooldownTimers.password > 0 ? `Wait ${cooldownTimers.password}s` : 'Update Password'}
-                        </Button>
-                      </div>
+                          <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="newPassword" className="text-base font-medium">New Password</Label>
+                              <div className="relative">
+                                <Input
+                                  id="newPassword"
+                                  type={passwordVisibility.new ? 'text' : 'password'}
+                                  value={formData.newPassword}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
+                                  placeholder="Enter new password"
+                                  className="h-11 pr-12"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-1.5 top-1.5 h-8 w-8"
+                                  onClick={() =>
+                                    setPasswordVisibility(prev => ({ ...prev, new: !prev.new }))
+                                  }
+                                  aria-label={`${passwordVisibility.new ? 'Hide' : 'Show'} new password`}
+                                >
+                                  {passwordVisibility.new ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="confirmPassword" className="text-base font-medium">Confirm Password</Label>
+                              <div className="relative">
+                                <Input
+                                  id="confirmPassword"
+                                  type={passwordVisibility.confirm ? 'text' : 'password'}
+                                  value={formData.confirmPassword}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                  placeholder="Confirm new password"
+                                  className="h-11 pr-12"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-1.5 top-1.5 h-8 w-8"
+                                  onClick={() =>
+                                    setPasswordVisibility(prev => ({ ...prev, confirm: !prev.confirm }))
+                                  }
+                                  aria-label={`${passwordVisibility.confirm ? 'Hide' : 'Show'} confirm password`}
+                                >
+                                  {passwordVisibility.confirm ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex flex-col items-end gap-2">
+                          {cooldownTimers.password > 0 && (
+                            <p className="text-sm text-destructive font-medium">
+                              Please wait {cooldownTimers.password}s before trying again
+                            </p>
+                          )}
+                          <Button
+                            type="submit"
+                            disabled={loading || cooldownTimers.password > 0}
+                            size="lg"
+                          >
+                            {loading ? 'Updating...' : cooldownTimers.password > 0 ? `Wait ${cooldownTimers.password}s` : 'Update Password'}
+                          </Button>
+                        </CardFooter>
+                      </Card>
                     </form>
-                  )}
-                </section>
+                  </TabsContent>
 
-                <Separator />
-
-                {/* Notification Preferences */}
-                <section className="space-y-6">
-                  <div 
-                    className="flex items-center justify-between cursor-pointer group"
-                    onClick={() => toggleSection('notifications')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                        <Bell className="h-5 w-5 text-blue-500" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold">Notifications</h2>
-                        <p className="text-sm text-muted-foreground">
-                          Manage how you receive updates and alerts
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      {expandedSections.notifications ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </Button>
-                  </div>
-
-                  {expandedSections.notifications && (
-                    <div className="space-y-6 pl-14 animate-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center justify-between py-4 border-b">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-base font-medium">Email Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive email notifications about your bookings
-                          </p>
+                  <TabsContent value="notifications" className="mt-6">
+                    <Card className="border-border/60">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <Bell className="h-5 w-5 text-blue-500" />
+                          Notification Preferences
+                        </CardTitle>
+                        <CardDescription>
+                          Choose how you want to stay updated about your reservations.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-base font-medium">Email Notifications</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Receive email notifications about your bookings.
+                            </p>
+                          </div>
+                          <Toggle
+                            pressed={notifications.emailNotifications}
+                            onPressedChange={(pressed) =>
+                              setNotifications(prev => ({ ...prev, emailNotifications: pressed }))
+                            }
+                            aria-label="Toggle email notifications"
+                            size="lg"
+                            className="mt-3 md:mt-0"
+                          >
+                            {notifications.emailNotifications ? 'On' : 'Off'}
+                          </Toggle>
                         </div>
-                        <Toggle
-                          pressed={notifications.emailNotifications}
-                          onPressedChange={(pressed) =>
-                            setNotifications(prev => ({ ...prev, emailNotifications: pressed }))
-                          }
-                          aria-label="Toggle email notifications"
-                          size="lg"
-                        >
-                          {notifications.emailNotifications ? 'On' : 'Off'}
-                        </Toggle>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-4 border-b">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-base font-medium">Booking Reminders</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Get reminders about upcoming bookings
-                          </p>
-                        </div>
-                        <Toggle
-                          pressed={notifications.bookingReminders}
-                          onPressedChange={(pressed) =>
-                            setNotifications(prev => ({ ...prev, bookingReminders: pressed }))
-                          }
-                          aria-label="Toggle booking reminders"
-                          size="lg"
-                        >
-                          {notifications.bookingReminders ? 'On' : 'Off'}
-                        </Toggle>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-4 border-b">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-base font-medium">Promotional Emails</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive emails about special offers and promotions
-                          </p>
-                        </div>
-                        <Toggle
-                          pressed={notifications.promotionalEmails}
-                          onPressedChange={(pressed) =>
-                            setNotifications(prev => ({ ...prev, promotionalEmails: pressed }))
-                          }
-                          aria-label="Toggle promotional emails"
-                          size="lg"
-                        >
-                          {notifications.promotionalEmails ? 'On' : 'Off'}
-                        </Toggle>
-                      </div>
 
-                      <div className="flex flex-col items-end gap-2 pt-2">
+                        <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-base font-medium">Booking Reminders</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Get reminders about upcoming bookings.
+                            </p>
+                          </div>
+                          <Toggle
+                            pressed={notifications.bookingReminders}
+                            onPressedChange={(pressed) =>
+                              setNotifications(prev => ({ ...prev, bookingReminders: pressed }))
+                            }
+                            aria-label="Toggle booking reminders"
+                            size="lg"
+                            className="mt-3 md:mt-0"
+                          >
+                            {notifications.bookingReminders ? 'On' : 'Off'}
+                          </Toggle>
+                        </div>
+
+                        <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-base font-medium">Promotional Emails</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Receive emails about special offers and promotions.
+                            </p>
+                          </div>
+                          <Toggle
+                            pressed={notifications.promotionalEmails}
+                            onPressedChange={(pressed) =>
+                              setNotifications(prev => ({ ...prev, promotionalEmails: pressed }))
+                            }
+                            aria-label="Toggle promotional emails"
+                            size="lg"
+                            className="mt-3 md:mt-0"
+                          >
+                            {notifications.promotionalEmails ? 'On' : 'Off'}
+                          </Toggle>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex flex-col items-end gap-2">
                         {cooldownTimers.notifications > 0 && (
                           <p className="text-sm text-destructive font-medium">
                             Please wait {cooldownTimers.notifications}s before trying again
                           </p>
                         )}
                         <Button
+                          type="button"
+                          size="lg"
                           onClick={() => {
                             if (!checkRateLimit('notifications')) return
                             toast.success('Notification preferences saved')
                           }}
-                          size="lg"
                           disabled={loading || cooldownTimers.notifications > 0}
                         >
                           {cooldownTimers.notifications > 0 ? `Wait ${cooldownTimers.notifications}s` : 'Save Preferences'}
                         </Button>
-                      </div>
-                    </div>
-                  )}
-                </section>
+                      </CardFooter>
+                    </Card>
+                  </TabsContent>
 
-                <Separator />
-
-                {/* Cookie Preferences */}
-                <section className="space-y-6">
-                  <div 
-                    className="flex items-center justify-between cursor-pointer group"
-                    onClick={() => toggleSection('cookies')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
-                        <Cookie className="h-5 w-5 text-amber-500" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold">Privacy & Cookies</h2>
-                        <p className="text-sm text-muted-foreground">
-                          Control how we use cookies and tracking
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      {expandedSections.cookies ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </Button>
-                  </div>
-
-                  {expandedSections.cookies && (
-                    <div className="space-y-6 pl-14 animate-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center justify-between py-4 border-b">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-base font-medium">Essential Cookies</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Required for the website to function properly
-                          </p>
+                  <TabsContent value="privacy" className="mt-6">
+                    <Card className="border-border/60">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <Cookie className="h-5 w-5 text-amber-500" />
+                          Privacy & Cookies
+                        </CardTitle>
+                        <CardDescription>
+                          Control how we use cookies and tracking technologies.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-base font-medium">Essential Cookies</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Required for the website to function properly.
+                            </p>
+                          </div>
+                          <Toggle
+                            pressed={cookies.essentialCookies}
+                            disabled
+                            aria-label="Essential cookies (always enabled)"
+                            size="lg"
+                            className="mt-3 md:mt-0"
+                          >
+                            Always On
+                          </Toggle>
                         </div>
-                        <Toggle
-                          pressed={cookies.essentialCookies}
-                          disabled
-                          aria-label="Essential cookies (always enabled)"
-                          size="lg"
-                        >
-                          Always On
-                        </Toggle>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-4 border-b">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-base font-medium">Analytics Cookies</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Help us improve our website performance
-                          </p>
-                        </div>
-                        <Toggle
-                          pressed={cookies.analyticsCookies}
-                          onPressedChange={(pressed) =>
-                            setCookies(prev => ({ ...prev, analyticsCookies: pressed }))
-                          }
-                          aria-label="Toggle analytics cookies"
-                          size="lg"
-                        >
-                          {cookies.analyticsCookies ? 'On' : 'Off'}
-                        </Toggle>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-4 border-b">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-base font-medium">Marketing Cookies</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Used to deliver personalized advertisements
-                          </p>
-                        </div>
-                        <Toggle
-                          pressed={cookies.marketingCookies}
-                          onPressedChange={(pressed) =>
-                            setCookies(prev => ({ ...prev, marketingCookies: pressed }))
-                          }
-                          aria-label="Toggle marketing cookies"
-                          size="lg"
-                        >
-                          {cookies.marketingCookies ? 'On' : 'Off'}
-                        </Toggle>
-                      </div>
 
-                      <div className="flex flex-col items-end gap-2 pt-2">
+                        <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-base font-medium">Analytics Cookies</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Help us improve our website performance.
+                            </p>
+                          </div>
+                          <Toggle
+                            pressed={cookies.analyticsCookies}
+                            onPressedChange={(pressed) =>
+                              setCookies(prev => ({ ...prev, analyticsCookies: pressed }))
+                            }
+                            aria-label="Toggle analytics cookies"
+                            size="lg"
+                            className="mt-3 md:mt-0"
+                          >
+                            {cookies.analyticsCookies ? 'On' : 'Off'}
+                          </Toggle>
+                        </div>
+
+                        <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-base font-medium">Marketing Cookies</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Used to deliver personalized advertisements.
+                            </p>
+                          </div>
+                          <Toggle
+                            pressed={cookies.marketingCookies}
+                            onPressedChange={(pressed) =>
+                              setCookies(prev => ({ ...prev, marketingCookies: pressed }))
+                            }
+                            aria-label="Toggle marketing cookies"
+                            size="lg"
+                            className="mt-3 md:mt-0"
+                          >
+                            {cookies.marketingCookies ? 'On' : 'Off'}
+                          </Toggle>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex flex-col items-end gap-2">
                         {cooldownTimers.cookies > 0 && (
                           <p className="text-sm text-destructive font-medium">
                             Please wait {cooldownTimers.cookies}s before trying again
                           </p>
                         )}
                         <Button
+                          type="button"
+                          size="lg"
                           onClick={() => {
                             if (!checkRateLimit('cookies')) return
                             toast.success('Cookie preferences saved')
                           }}
-                          size="lg"
                           disabled={loading || cooldownTimers.cookies > 0}
                         >
                           {cooldownTimers.cookies > 0 ? `Wait ${cooldownTimers.cookies}s` : 'Save Preferences'}
                         </Button>
-                      </div>
-                    </div>
-                  )}
-                </section>
+                      </CardFooter>
+                    </Card>
+                  </TabsContent>
 
-                <Separator />
-
-                {/* Account Information */}
-                <section className="space-y-6">
-                  <div 
-                    className="flex items-center justify-between cursor-pointer group"
-                    onClick={() => toggleSection('account')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                        <User className="h-5 w-5 text-green-500" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold">Account Details</h2>
-                        <p className="text-sm text-muted-foreground">
-                          View your account status and information
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      {expandedSections.account ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </Button>
-                  </div>
-
-                  {expandedSections.account && (
-                    <div className="pl-14 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="flex flex-col gap-2 p-4 rounded-lg bg-muted/50">
+                  <TabsContent value="account" className="mt-6">
+                    <Card className="border-border/60">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <Info className="h-5 w-5 text-green-500" />
+                          Account Details
+                        </CardTitle>
+                        <CardDescription>
+                          View your membership information and account status.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid gap-4 md:grid-cols-2">
+                        <div className="flex flex-col gap-2 rounded-lg border border-border/80 bg-muted/40 p-4">
                           <span className="text-sm font-medium text-muted-foreground">Account Type</span>
                           <span className="text-lg font-semibold capitalize">{user?.role || 'Guest'}</span>
                         </div>
-                        <div className="flex flex-col gap-2 p-4 rounded-lg bg-muted/50">
+                        <div className="flex flex-col gap-2 rounded-lg border border-border/80 bg-muted/40 p-4">
                           <span className="text-sm font-medium text-muted-foreground">Member Since</span>
                           <span className="text-lg font-semibold">
-                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
                             }) : 'N/A'}
                           </span>
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </section>
-                    
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>

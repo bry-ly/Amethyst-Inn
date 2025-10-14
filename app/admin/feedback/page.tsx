@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { FeedbackDataTable } from "@/components/feedback/feedback-data-table";
+import { Unauthorized } from "@/components/ui/unauthorized";
 import { AuthTokenManager } from "@/utils/cookies";
 import { toast } from "sonner";
 import { PageLoader } from "@/components/common/loading-spinner";
@@ -31,8 +32,8 @@ function AdminFeedbackContent() {
 
   async function checkAuthAndFetchFeedback() {
     try {
-      const token = AuthTokenManager.getToken();
-      // Check if user is admin/staff using internal API so cookie can be used
+  const token = AuthTokenManager.getToken();
+  // Check if user is admin using internal API so cookie can be used
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
       const authRes = await fetch("/api/auth/me", {
         cache: "no-store",
@@ -47,9 +48,9 @@ function AdminFeedbackContent() {
 
       const userData = await authRes.json();
 
-      if (userData?.role !== "admin" && userData?.role !== "staff") {
-        toast.error("Access denied. Admin privileges required.");
-        router.push("/");
+      if (userData?.role !== "admin") {
+        setIsAuthorized(false);
+        setIsLoading(false);
         return;
       }
 
@@ -132,9 +133,10 @@ function AdminFeedbackContent() {
           {isLoading ? (
             <PageLoader message="Loading feedback..." />
           ) : !isAuthorized ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <p className="text-muted-foreground">Checking authorization...</p>
-            </div>
+            <Unauthorized
+              title="Admin Access Required"
+              message="This feedback management page is restricted to administrators only. You need admin privileges to view and manage customer feedback."
+            />
           ) : (
             <FeedbackDataTable data={feedbacks} onFeedbackUpdated={handleFeedbackUpdated} />
           )}

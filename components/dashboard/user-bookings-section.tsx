@@ -327,14 +327,8 @@ export function UserBookingsSection() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">My Bookings</h2>
         </div>
-        <Card>
-          <CardContent className="py-8">
-            <div className="flex items-center justify-center text-muted-foreground">
-              <Clock className="h-5 w-5 mr-2 animate-spin" />
-              Loading bookings...
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12 text-muted-foreground">
+          </div>
       </div>
     );
   }
