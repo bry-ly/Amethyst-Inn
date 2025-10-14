@@ -38,8 +38,8 @@ interface UserSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 const data = {
   user: {
-    name: "Guest User",
-    email: "guest@amethystinn.com",
+    name: "Guest",
+    email: "",
     avatar: "/avatars/default.jpg",
   },
   navMain: [
