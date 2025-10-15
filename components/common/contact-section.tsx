@@ -28,7 +28,7 @@ export default function ContactSection() {
           <div>
             <div className="font-medium">Address</div>
             <div className="text-muted-foreground">
-              Purok Kalipay, Gabayan Street, San Manuel, Puerto Princesa City, Palawan 5300
+              Pablico Road 4, Tiniguiban, Puerto Princesa City, Palawan 5300
             </div>
           </div>
           <div>
