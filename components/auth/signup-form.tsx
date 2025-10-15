@@ -229,7 +229,7 @@ export function SignupForm({
         throw new Error(data?.message || data?.error || "Signup failed")
       }
       toast.success("Account created successfully! Please login to continue.")
-      router.push('/login')
+      router.push('/login?force=1')
     } catch (err: any) {
       toast.error(err?.message || "Signup failed")
     } finally {
@@ -253,7 +253,7 @@ export function SignupForm({
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="ex. Amethyst"
+                  placeholder="ex. amethyst"
                   required
                   autoComplete="name"
                   value={name}
@@ -268,7 +268,7 @@ export function SignupForm({
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="e.g. amethyst@gmail.com"
+                  placeholder="e.g. @gmail.com"
                   required
                   autoComplete="email"
                   value={email}
@@ -349,7 +349,7 @@ export function SignupForm({
             </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
-              <Link href="/login?force=true" className="underline underline-offset-4">
+              <Link href="/login" className="underline underline-offset-4">
                 Sign In
               </Link>
             </div>
