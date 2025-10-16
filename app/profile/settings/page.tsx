@@ -7,7 +7,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Toggle } from '@/components/ui/toggle'
+import { Switch } from '@/components/ui/switch'
 import {
   Card,
   CardContent,
@@ -506,17 +506,14 @@ export default function UserSettingsPage() {
                               Receive email notifications about your bookings.
                             </p>
                           </div>
-                          <Toggle
-                            pressed={notifications.emailNotifications}
-                            onPressedChange={(pressed) =>
-                              setNotifications(prev => ({ ...prev, emailNotifications: pressed }))
+                          <Switch
+                            checked={notifications.emailNotifications}
+                            onCheckedChange={(checked) =>
+                              setNotifications(prev => ({ ...prev, emailNotifications: checked }))
                             }
                             aria-label="Toggle email notifications"
-                            size="lg"
                             className="mt-3 md:mt-0"
-                          >
-                            {notifications.emailNotifications ? 'On' : 'Off'}
-                          </Toggle>
+                          />
                         </div>
 
                         <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
@@ -526,17 +523,14 @@ export default function UserSettingsPage() {
                               Get reminders about upcoming bookings.
                             </p>
                           </div>
-                          <Toggle
-                            pressed={notifications.bookingReminders}
-                            onPressedChange={(pressed) =>
-                              setNotifications(prev => ({ ...prev, bookingReminders: pressed }))
+                          <Switch
+                            checked={notifications.bookingReminders}
+                            onCheckedChange={(checked) =>
+                              setNotifications(prev => ({ ...prev, bookingReminders: checked }))
                             }
                             aria-label="Toggle booking reminders"
-                            size="lg"
                             className="mt-3 md:mt-0"
-                          >
-                            {notifications.bookingReminders ? 'On' : 'Off'}
-                          </Toggle>
+                          />
                         </div>
 
                         <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
@@ -546,17 +540,14 @@ export default function UserSettingsPage() {
                               Receive emails about special offers and promotions.
                             </p>
                           </div>
-                          <Toggle
-                            pressed={notifications.promotionalEmails}
-                            onPressedChange={(pressed) =>
-                              setNotifications(prev => ({ ...prev, promotionalEmails: pressed }))
+                          <Switch
+                            checked={notifications.promotionalEmails}
+                            onCheckedChange={(checked) =>
+                              setNotifications(prev => ({ ...prev, promotionalEmails: checked }))
                             }
                             aria-label="Toggle promotional emails"
-                            size="lg"
                             className="mt-3 md:mt-0"
-                          >
-                            {notifications.promotionalEmails ? 'On' : 'Off'}
-                          </Toggle>
+                          />
                         </div>
                       </CardContent>
                       <CardFooter className="flex flex-col items-end gap-2">
@@ -599,15 +590,12 @@ export default function UserSettingsPage() {
                               Required for the website to function properly.
                             </p>
                           </div>
-                          <Toggle
-                            pressed={cookies.essentialCookies}
+                          <Switch
+                            checked={cookies.essentialCookies}
                             disabled
                             aria-label="Essential cookies (always enabled)"
-                            size="lg"
                             className="mt-3 md:mt-0"
-                          >
-                            Always On
-                          </Toggle>
+                          />
                         </div>
 
                         <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
@@ -617,17 +605,14 @@ export default function UserSettingsPage() {
                               Help us improve our website performance.
                             </p>
                           </div>
-                          <Toggle
-                            pressed={cookies.analyticsCookies}
-                            onPressedChange={(pressed) =>
-                              setCookies(prev => ({ ...prev, analyticsCookies: pressed }))
+                          <Switch
+                            checked={cookies.analyticsCookies}
+                            onCheckedChange={(checked) =>
+                              setCookies(prev => ({ ...prev, analyticsCookies: checked }))
                             }
                             aria-label="Toggle analytics cookies"
-                            size="lg"
                             className="mt-3 md:mt-0"
-                          >
-                            {cookies.analyticsCookies ? 'On' : 'Off'}
-                          </Toggle>
+                          />
                         </div>
 
                         <div className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/40 p-4 md:flex-row md:items-center md:justify-between">
@@ -637,17 +622,14 @@ export default function UserSettingsPage() {
                               Used to deliver personalized advertisements.
                             </p>
                           </div>
-                          <Toggle
-                            pressed={cookies.marketingCookies}
-                            onPressedChange={(pressed) =>
-                              setCookies(prev => ({ ...prev, marketingCookies: pressed }))
+                          <Switch
+                            checked={cookies.marketingCookies}
+                            onCheckedChange={(checked) =>
+                              setCookies(prev => ({ ...prev, marketingCookies: checked }))
                             }
                             aria-label="Toggle marketing cookies"
-                            size="lg"
                             className="mt-3 md:mt-0"
-                          >
-                            {cookies.marketingCookies ? 'On' : 'Off'}
-                          </Toggle>
+                          />
                         </div>
                       </CardContent>
                       <CardFooter className="flex flex-col items-end gap-2">
